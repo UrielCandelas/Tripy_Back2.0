@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id                String              @id @default(uuid())
+  email             String              @db.Char(100)
+  name              String              @db.Char(20)
+  lastName          String              @db.Char(20)
+  secondLastName    String?             @db.Char(20)
+  userName          String              @db.Char(15)
+  password          String?             @db.Char(65)
+  idOTP             String              @unique @db.Char(50)
+  idProfile_img     String?             @unique @db.Char(50)
+  isActive          Boolean             @default(false)
+  isAdmin           Boolean             @default(false)
+  cratedAt          DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  //relations
+  otp               OTP                 @relation(fields: [idOTP], references: [id])
+  image             img_Users?          @relation(fields: [idProfile_img], references: [id])
+  TravelsU1         Travels[]           @relation(name: "TravelsID_1")
+  TravelsU2         Travels[]           @relation(name: "TravelsID_2")
+  Chat_MessagesU1   Chat_Messages[]     @relation(name: "ChatRelation1")
+  Chat_MessagesU2   Chat_Messages[]     @relation(name: "ChatRelation2")
+  ExpensesU1        det_Expenses[]      @relation(name: "ExpensesRelation1")
+  ExpensesU2        det_Expenses[]      @relation(name: "ExpensesRelation2")
+  UserComentsU1     User_Comments[]     @relation(name: "UserComentsRelation1")
+  UserComentsU2     User_Comments[]     @relation(name: "UserComentsRelation2")
+  Travel_RequestU2  Travel_Request[]    @relation(name: "TravelRequestRelation1")
+  Travel_RequestU1  Travel_Request[]    @relation(name: "TravelRequestRelation2")
+  Location_Comments Location_Comments[]
+}
+
+model OTP {
+  id        String   @id @default(uuid())
+  otp       Int      @db.Int
+  token     String?  @db.VarChar(500)
+  cratedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  //relations
+  Users     Users[]
+}
+
+model Travels {
+  id                String           @id @default(uuid())
+  id_user1          String           @unique @db.Char(50)
+  id_user2          String?          @unique @db.Char(50)
+  id_location       String           @unique @db.Char(50)
+  id_transportation String           @unique @db.Char(50)
+  id_extras         String?          @unique @db.Char(50)
+  isActive          Boolean          @default(false)
+  travel_date       DateTime         @db.Date
+  companions        Int              @db.Int
+  cratedAt          DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  //relations
+  user1             Users            @relation(name: "TravelsID_1", fields: [id_user1], references: [id])
+  user2             Users?           @relation(name: "TravelsID_2", fields: [id_user2], references: [id])
+  location          cat_Locations    @relation(fields: [id_location], references: [id])
+  transportation    cat_Transport    @relation(fields: [id_transportation], references: [id])
+  extras            det_Extras?      @relation(fields: [id_extras], references: [id])
+  det_Expenses      det_Expenses[]
+  Travel_Request    Travel_Request[]
+}
+
+model cat_Locations {
+  id                String              @id @default(uuid())
+  id_locationImage1 String              @unique @db.Char(50)
+  id_locationImage2 String              @unique @db.Char(50)
+  location_name     String              @db.Char(20)
+  location          String              @db.Char(50)
+  description       String              @db.Char(125)
+  rate              Decimal?            @db.Decimal()
+  cost              Decimal             @db.Decimal()
+  schedule          String              @db.Char(20)
+  cratedAt          DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  //relations
+  Travels           Travels[]
+  locationImage1    img_Locations       @relation(name: "LocationImg1", fields: [id_locationImage1], references: [id])
+  locationImage2    img_Locations       @relation(name: "LocationImg2", fields: [id_locationImage2], references: [id])
+  Location_Comments Location_Comments[]
+}
+
+model Location_Comments {
+  id          String        @id @default(uuid())
+  id_user     String        @unique @db.Char(50)
+  id_location String        @unique @db.Char(50)
+  comment     String        @db.Char(125)
+  cratedAt    DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  //relations
+  user        Users         @relation(fields: [id_user], references: [id])
+  location    cat_Locations @relation(fields: [id_location], references: [id])
+}
+
+model det_Extras {
+  id               String    @id @default(uuid())
+  extra_commentary String    @db.Char(125)
+  cratedAt         DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  //relations
+  Travels          Travels[]
+}
+
+model cat_Transport {
+  id        String   @id @default(uuid())
+  transport String   @db.Char(10)
+  cratedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  //relations
+
+  Travels Travels[]
+}
+
+model img_Locations {
+  id             String          @id @default(uuid())
+  image          String          @db.LongText
+  cratedAt       DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  //relations
+  cat_Locations1 cat_Locations[] @relation(name: "LocationImg1")
+  cat_Locations2 cat_Locations[] @relation(name: "LocationImg2")
+}
+
+model img_Users {
+  id        String   @id @default(uuid())
+  image     String   @db.LongText
+  cratedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  //relations
+  Users     Users[]
+}
+
+model Chat_Messages {
+  id        String   @id @default(uuid())
+  id_user1  String   @unique @db.Char(50)
+  id_user2  String   @unique @db.Char(50)
+  users     Json     @db.Json
+  message   String   @db.Char(255)
+  cratedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  //relations
+  user1     Users    @relation(name: "ChatRelation1", fields: [id_user1], references: [id])
+  user2     Users    @relation(name: "ChatRelation2", fields: [id_user2], references: [id])
+}
+
+model det_Expenses {
+  id        String   @id @default(uuid())
+  id_user1  String   @unique @db.Char(50)
+  id_user2  String?  @unique @db.Char(50)
+  id_travel String?  @unique @db.Char(50)
+  expense   String   @db.Char(20)
+  quantity  Decimal  @db.Decimal()
+  cratedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  //relations
+  user1     Users    @relation(name: "ExpensesRelation1", fields: [id_user1], references: [id])
+  user2     Users?   @relation(name: "ExpensesRelation2", fields: [id_user2], references: [id])
+  travel    Travels? @relation(fields: [id_travel], references: [id])
+}
+
+model User_Comments {
+  id              String   @id @default(uuid())
+  id_userComented String   @unique @db.Char(50)
+  id_userComent   String   @unique @db.Char(50)
+  comentary_text  String   @db.Char(125)
+  rate            Decimal  @db.Decimal()
+  cratedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  //relations
+  user1           Users    @relation(name: "UserComentsRelation1", fields: [id_userComented], references: [id])
+  user2           Users    @relation(name: "UserComentsRelation2", fields: [id_userComent], references: [id])
+}
+
+model Travel_Request {
+  id        String   @id @default(uuid())
+  id_user1  String   @unique @db.Char(50)
+  id_user2  String   @unique @db.Char(50)
+  id_travel String   @unique @db.Char(50)
+  isActive  Boolean  @default(false)
+  cratedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  //relations
+  user1     Users    @relation(name: "TravelRequestRelation1", fields: [id_user1], references: [id])
+  user2     Users    @relation(name: "TravelRequestRelation2", fields: [id_user2], references: [id])
+  travel    Travels  @relation(fields: [id_travel], references: [id])
+}
