@@ -18,8 +18,8 @@ model Users {
   secondLastName    String?             @db.Char(20)
   userName          String              @db.Char(15)
   password          String?             @db.Char(65)
-  idOTP             String              @unique @db.Char(50)
-  idProfile_img     String?             @unique @db.Char(50)
+  idOTP             String              @db.Char(50)
+  idProfile_img     String?             @db.Char(50)
   isActive          Boolean             @default(false)
   isAdmin           Boolean             @default(false)
   cratedAt          DateTime            @default(now())
@@ -52,11 +52,11 @@ model OTP {
 
 model Travels {
   id                String           @id @default(uuid())
-  id_user1          String           @unique @db.Char(50)
-  id_user2          String?          @unique @db.Char(50)
-  id_location       String           @unique @db.Char(50)
-  id_transportation String           @unique @db.Char(50)
-  id_extras         String?          @unique @db.Char(50)
+  id_user1          String           @db.Char(50)
+  id_user2          String?          @db.Char(50)
+  id_location       String           @db.Char(50)
+  id_transportation String           @db.Char(50)
+  id_extras         String?          @db.Char(50)
   isActive          Boolean          @default(false)
   travel_date       DateTime         @db.Date
   companions        Int              @db.Int
@@ -74,8 +74,8 @@ model Travels {
 
 model cat_Locations {
   id                String              @id @default(uuid())
-  id_locationImage1 String              @unique @db.Char(50)
-  id_locationImage2 String              @unique @db.Char(50)
+  id_locationImage1 String              @db.Char(50)
+  id_locationImage2 String              @db.Char(50)
   location_name     String              @db.Char(20)
   location          String              @db.Char(50)
   description       String              @db.Char(125)
@@ -93,8 +93,8 @@ model cat_Locations {
 
 model Location_Comments {
   id          String        @id @default(uuid())
-  id_user     String        @unique @db.Char(50)
-  id_location String        @unique @db.Char(50)
+  id_user     String        @db.Char(50)
+  id_location String        @db.Char(50)
   comment     String        @db.Char(125)
   cratedAt    DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -143,8 +143,8 @@ model img_Users {
 
 model Chat_Messages {
   id        String   @id @default(uuid())
-  id_user1  String   @unique @db.Char(50)
-  id_user2  String   @unique @db.Char(50)
+  id_user1  String   @db.Char(50)
+  id_user2  String   @db.Char(50)
   users     Json     @db.Json
   message   String   @db.Char(255)
   cratedAt  DateTime @default(now())
@@ -156,9 +156,9 @@ model Chat_Messages {
 
 model det_Expenses {
   id        String   @id @default(uuid())
-  id_user1  String   @unique @db.Char(50)
-  id_user2  String?  @unique @db.Char(50)
-  id_travel String?  @unique @db.Char(50)
+  id_user1  String   @db.Char(50)
+  id_user2  String?  @db.Char(50)
+  id_travel String?  @db.Char(50)
   expense   String   @db.Char(20)
   quantity  Decimal  @db.Decimal()
   cratedAt  DateTime @default(now())
@@ -171,8 +171,8 @@ model det_Expenses {
 
 model User_Comments {
   id              String   @id @default(uuid())
-  id_userComented String   @unique @db.Char(50)
-  id_userComent   String   @unique @db.Char(50)
+  id_userComented String   @db.Char(50)
+  id_userComent   String   @db.Char(50)
   comentary_text  String   @db.Char(125)
   rate            Decimal  @db.Decimal()
   cratedAt        DateTime @default(now())
@@ -184,9 +184,9 @@ model User_Comments {
 
 model Travel_Request {
   id        String   @id @default(uuid())
-  id_user1  String   @unique @db.Char(50)
-  id_user2  String   @unique @db.Char(50)
-  id_travel String   @unique @db.Char(50)
+  id_user1  String   @db.Char(50)
+  id_user2  String   @db.Char(50)
+  id_travel String   @db.Char(50)
   isActive  Boolean  @default(false)
   cratedAt  DateTime @default(now())
   updatedAt DateTime @updatedAt

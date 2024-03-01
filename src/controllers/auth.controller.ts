@@ -200,7 +200,7 @@ export const verifyToken = async (req: Request, res: Response) => {
         email: userFound.email,
       });
     });
-    return res.sendStatus(200);
+    return;
   } catch (error) {
     console.log(error);
     return res.status(500).json(["Error al verificar el token"]);
