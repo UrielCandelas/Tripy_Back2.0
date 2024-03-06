@@ -3,6 +3,7 @@ import {
   Travels,
   det_Expenses,
   det_Extras,
+  Travel_Request,
 } from "@prisma/client";
 import { Request, Response } from "express";
 
@@ -186,7 +187,7 @@ export const getAllExtras = async (req: Request, res: Response) => {
 };
 
 export const addTravelRequest = async (req: Request, res: Response) => {
-  const { id_user1, id_user2, id_travel } = req.body;
+  const { id_user1, id_user2, id_travel }:Travel_Request = req.body;
   try {
     const travelFound = await getTravel(id_travel);
     const user1Found = await getOneUser(id_user1);
@@ -200,8 +201,8 @@ export const addTravelRequest = async (req: Request, res: Response) => {
     if (!travelFound) {
       return res.status(404).json(["No se encontro el viaje"]);
     }
-    const requestFound = await RequestTravel.findUnique({
-      where: { id_user2: id_user2, id_travel: id_travel, isActive: true },
+    const requestFound = await RequestTravel.findFirst({
+      where: { id_user2: id_user2 , isActive: true, id_user1: id_user1 }
     });
     if (requestFound) {
       return res.status(401).json(["Ya tienes una solicitud pendiente"]);
