@@ -59,7 +59,7 @@ export const register = async (req: Request, res: Response) => {
         idOTP: newOTP.id,
       },
     });
-    const token = await createAccessToken({ id: newUser.id });
+    const token = await createAccessToken({ otp: newOTP.otp, id: newUser.id });
 
     const otpUpdated = await OTP.update({
       where: {
@@ -71,6 +71,19 @@ export const register = async (req: Request, res: Response) => {
     });
     const from = process.env.SENDER_EMAIL;
 
+    if (newUser.isAdmin) {
+      await User.update({
+        where: {
+          id: newUser.id,
+        },
+        data: {
+          isActive: true,
+        },
+      });
+      return res.status(201).json({
+        message: "Se ha registrado exitosamente",
+      });
+    }
     await transporter.sendMail({
       from,
       to: newUser.email,
@@ -102,6 +115,7 @@ export const register = async (req: Request, res: Response) => {
     return res.sendStatus(200);
   } catch (error: any) {
     //Se envia un estatus 500 en caso de que falle el servidor
+    console.log(error);
     return res.status(500).json([error.message]);
   }
 };
@@ -133,10 +147,12 @@ export const login = async (req: Request, res: Response) => {
     res.cookie("token", token);
     return res.json({
       id: userFound.id,
-      username: userFound.userName,
+      name: userFound.name,
+      lastName: userFound.lastName,
+      secondLastName: userFound.secondLastName,
+      userName: userFound.userName,
       email: userFound.email,
-      createdAt: userFound.cratedAt,
-      updatedAt: userFound.updatedAt,
+      isAdmin: userFound.isAdmin,
     });
   } catch (error: any) {
     //Se envia un estatus 500 en caso de que falle el servidor
@@ -196,8 +212,13 @@ export const verifyToken = async (req: Request, res: Response) => {
       }
       return res.json({
         id: userFound.id,
-        username: userFound.userName,
+        name: userFound.name,
+        lastName: userFound.lastName,
+        secondLastName: userFound.secondLastName,
+        userName: userFound.userName,
         email: userFound.email,
+        isAdmin: userFound.isAdmin,
+        createdAt: userFound.cratedAt,
       });
     });
     return;
@@ -361,8 +382,12 @@ export const verifyOTP = async (req: Request, res: Response) => {
     }
     const idOTP = await OTP.findUnique({ where: { id: userFound.idOTP } });
 
+    if (verify != idOTP?.token) {
+      return res.status(401).json(["No autorizado"]);
+    }
+
     if (idOTP?.otp != otp || idOTP?.otp != data.otp) {
-      //console.log(`el otp es ${otp} y el userFound.otp es ${idOTP}`);
+      console.log(`el otp es ${otp} y el userFound.otp es ${idOTP?.otp}`);
       console.log("aca llega2");
       return res.status(401).json(["No autorizado"]);
     }
@@ -370,11 +395,13 @@ export const verifyOTP = async (req: Request, res: Response) => {
       expires: new Date(0),
     });
 
-    await User.findUnique({ where: { id: data.id } });
+    const token = await createAccessToken({ id: userFound.id }, "1h");
+    res.cookie("token", token);
+    await User.update({ where: { id: data.id }, data: { isActive: true } });
 
     return res.sendStatus(200);
   });
-  return res.sendStatus(200);
+  return;
 };
 
 export const verifyIsActive = async (req: Request, res: Response) => {

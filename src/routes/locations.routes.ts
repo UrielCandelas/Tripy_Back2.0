@@ -10,7 +10,7 @@ import {
   getLocation,
   deleteLocation,
   getAllLocationsAndImages1,
-  getAllLocationsAndImages2,
+  getTravelsAndImage2,
   getLocationsAndTransports,
   locationData,
 } from "../controllers/locations.controller";
@@ -19,13 +19,18 @@ const router = Router();
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fieldSize: 1024 * 1024 * 0.5, files: 2 },
+  limits: {
+    fileSize: 1024 * 1024,
+    files: 2,
+  },
 });
 
 router.post(
   "/locations",
-  upload.fields([{ name: "image1" }, { name: "image2" }]),
-  validateSchema(locationSchema),
+  upload.fields([
+    { name: "image1", maxCount: 1 },
+    { name: "image2", maxCount: 1 },
+  ]),
   registerLocation
 );
 router.put(
@@ -38,7 +43,7 @@ router.get("/locations/:id", getLocation);
 router.get("/locations/transports", getLocationsAndTransports);
 router.delete("/locations/:id", deleteLocation);
 router.get("/locations", getAllLocationsAndImages1);
-router.get("/locations/second", getAllLocationsAndImages2);
+router.get("/locations/second/:id", getTravelsAndImage2);
 router.get("/locations/data/:id", locationData);
 
 export default router;

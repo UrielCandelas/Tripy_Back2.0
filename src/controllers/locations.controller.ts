@@ -3,6 +3,14 @@ import { Request, Response } from "express";
 import { resizeImage } from "../lib/sharp.lib";
 import { getLocation as getOneLocation } from "../lib/travels.lib";
 import { DataCards } from "../../types";
+import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 const prisma = new PrismaClient();
 
 const Locations = prisma.cat_Locations;
@@ -30,18 +38,39 @@ export const registerLocation = async (req: Request, res: Response) => {
   ][0];
 
   try {
-    const image1 = await resizeImage(file1.buffer);
-    const image2 = await resizeImage(file2.buffer, 200, 300);
-
+    const response_img1: UploadApiResponse | undefined = await new Promise(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({}, (error, result) => {
+            if (error) {
+              reject(error);
+            }
+            resolve(result);
+          })
+          .end(file1.buffer);
+      }
+    );
+    const response_img2: UploadApiResponse | undefined = await new Promise(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({}, (error, result) => {
+            if (error) {
+              reject(error);
+            }
+            resolve(result);
+          })
+          .end(file2.buffer);
+      }
+    );
     const newImage1 = await img_Locations.create({
       data: {
-        image: image1,
+        image: response_img1?.secure_url as string,
       },
     });
 
     const newImage2 = await img_Locations.create({
       data: {
-        image: image2,
+        image: response_img2?.secure_url as string,
       },
     });
     await Locations.create({
@@ -57,6 +86,7 @@ export const registerLocation = async (req: Request, res: Response) => {
     });
     return res.status(200).json(["Se ha registrado la locacion con exito"]);
   } catch (error: any) {
+    console.log(error);
     return res.status(500).json([`Ha ocurrido un error: ${error}`]);
   }
 };
@@ -124,12 +154,12 @@ export const getAllLocationsAndImages1 = async (
     const locationsFound = await Locations.findMany();
     const imagesarr: img_Locations[] = [];
 
-    locationsFound.map(async (location) => {
+    for (let index = 0; index < locationsFound.length; index++) {
       const img = await img_Locations.findUnique({
-        where: { id: location.id_locationImage1 },
+        where: { id: locationsFound[index].id_locationImage1 },
       });
       imagesarr.push(img as img_Locations);
-    });
+    }
     const data = {
       locations: locationsFound,
       images: imagesarr,
@@ -167,23 +197,23 @@ export const deleteLocation = async (req: Request, res: Response) => {
   }
 };
 
-export const getAllLocationsAndImages2 = async (
-  _req: Request,
-  res: Response
-) => {
+export const getTravelsAndImage2 = async (req: Request, res: Response) => {
+  const { id } = req.params;
   try {
-    const locationsFound = await Locations.findMany();
-    const imagesarr: img_Locations[] = [];
+    const locationFound = await Locations.findUnique({
+      where: { id },
+    });
 
-    locationsFound.map(async (location) => {
-      const img = await img_Locations.findUnique({
-        where: { id: location.id_locationImage2 },
-      });
-      imagesarr.push(img as img_Locations);
+    const travelsFound = await Travel.findMany({
+      where: { id_location: id },
+    });
+
+    const img = await img_Locations.findUnique({
+      where: { id: locationFound?.id_locationImage2 },
     });
     const data = {
-      locations: locationsFound,
-      images: imagesarr,
+      travelsFound,
+      image: img,
     };
     return res.status(200).json(data);
   } catch (error: any) {
