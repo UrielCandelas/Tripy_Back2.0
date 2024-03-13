@@ -147,7 +147,7 @@ export const getMessages = async (req: Request, res: Response) => {
         },
       },
       orderBy: {
-        cratedAt: "desc",
+        createdAt: "desc",
       },
     });
     const PMessages = messages.map((message) => {

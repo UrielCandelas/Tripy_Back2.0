@@ -11,7 +11,7 @@ CREATE TABLE `Users` (
     `idProfile_img` CHAR(50) NULL,
     `isActive` BOOLEAN NOT NULL DEFAULT false,
     `isAdmin` BOOLEAN NOT NULL DEFAULT false,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -22,7 +22,7 @@ CREATE TABLE `OTP` (
     `id` VARCHAR(191) NOT NULL,
     `otp` INTEGER NOT NULL,
     `token` VARCHAR(500) NULL,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -34,12 +34,12 @@ CREATE TABLE `Travels` (
     `id_user1` CHAR(50) NOT NULL,
     `id_user2` CHAR(50) NULL,
     `id_location` CHAR(50) NOT NULL,
-    `id_transportation` CHAR(50) NOT NULL,
+    `id_transportation` INTEGER NOT NULL,
     `id_extras` CHAR(50) NULL,
     `isActive` BOOLEAN NOT NULL DEFAULT false,
     `travel_date` DATE NOT NULL,
     `companions` INTEGER NOT NULL,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -56,7 +56,7 @@ CREATE TABLE `cat_Locations` (
     `rate` DECIMAL NULL,
     `cost` DECIMAL NOT NULL,
     `schedule` CHAR(20) NOT NULL,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -68,7 +68,7 @@ CREATE TABLE `Location_Comments` (
     `id_user` CHAR(50) NOT NULL,
     `id_location` CHAR(50) NOT NULL,
     `comment` CHAR(125) NOT NULL,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -78,7 +78,7 @@ CREATE TABLE `Location_Comments` (
 CREATE TABLE `det_Extras` (
     `id` VARCHAR(191) NOT NULL,
     `extra_commentary` CHAR(125) NOT NULL,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -86,9 +86,9 @@ CREATE TABLE `det_Extras` (
 
 -- CreateTable
 CREATE TABLE `cat_Transport` (
-    `id` VARCHAR(191) NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `transport` CHAR(10) NOT NULL,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -97,8 +97,8 @@ CREATE TABLE `cat_Transport` (
 -- CreateTable
 CREATE TABLE `img_Locations` (
     `id` VARCHAR(191) NOT NULL,
-    `image` LONGTEXT NOT NULL,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `image` TEXT NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -107,8 +107,8 @@ CREATE TABLE `img_Locations` (
 -- CreateTable
 CREATE TABLE `img_Users` (
     `id` VARCHAR(191) NOT NULL,
-    `image` LONGTEXT NOT NULL,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `image` TEXT NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -121,7 +121,7 @@ CREATE TABLE `Chat_Messages` (
     `id_user2` CHAR(50) NOT NULL,
     `users` JSON NOT NULL,
     `message` CHAR(255) NOT NULL,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -135,7 +135,7 @@ CREATE TABLE `det_Expenses` (
     `id_travel` CHAR(50) NULL,
     `expense` CHAR(20) NOT NULL,
     `quantity` DECIMAL NOT NULL,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -148,7 +148,7 @@ CREATE TABLE `User_Comments` (
     `id_userComent` CHAR(50) NOT NULL,
     `comentary_text` CHAR(125) NOT NULL,
     `rate` DECIMAL NOT NULL,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -161,7 +161,7 @@ CREATE TABLE `Travel_Request` (
     `id_user2` CHAR(50) NOT NULL,
     `id_travel` CHAR(50) NOT NULL,
     `isActive` BOOLEAN NOT NULL DEFAULT false,
-    `cratedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)

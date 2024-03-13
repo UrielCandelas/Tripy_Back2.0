@@ -228,18 +228,13 @@ export const getLocationsAndTransports = async (
   try {
     const locationsFound = await Locations.findMany();
     const transportsFound = await Transports.findMany();
-    if (!locationsFound || !transportsFound) {
-      return res
-        .status(400)
-        .json(["No hay locaciones o transportes registrados"]);
-    }
     const data = {
       locations: locationsFound,
       transports: transportsFound,
     };
     return res.status(200).json(data);
   } catch (error: any) {
-    return res.status(500).json([`Ocurrio un Error: ${error.message}`]);
+    return res.status(500).json([`Ocurrio un Error: ${error}`]);
   }
 };
 
@@ -265,7 +260,7 @@ export const locationData = async (req: Request, res: Response) => {
         select: {
           id: true,
           name: true,
-          cratedAt: true,
+          createdAt: true,
         },
       });
       temporal_user = user;

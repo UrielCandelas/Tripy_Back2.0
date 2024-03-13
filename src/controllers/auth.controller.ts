@@ -10,6 +10,7 @@ const prisma = new PrismaClient();
 
 const User = prisma.users;
 const OTP = prisma.oTP;
+const img_User = prisma.img_Users;
 const SECRET_KEY = process.env.SECRET_KEY;
 
 export const register = async (req: Request, res: Response) => {
@@ -47,6 +48,12 @@ export const register = async (req: Request, res: Response) => {
         otp,
       },
     });
+    const newProfileImg = await img_User.create({
+      data: {
+        image:
+          "https://res.cloudinary.com/dpeb20cjo/image/upload/v1710106219/perfil-de-usuario_obck36.webp",
+      },
+    });
     const newUser = await User.create({
       data: {
         name,
@@ -57,6 +64,7 @@ export const register = async (req: Request, res: Response) => {
         password: hash,
         isAdmin,
         idOTP: newOTP.id,
+        idProfile_img: newProfileImg.id,
       },
     });
     const token = await createAccessToken({ otp: newOTP.otp, id: newUser.id });
@@ -81,7 +89,7 @@ export const register = async (req: Request, res: Response) => {
         },
       });
       return res.status(201).json({
-        message: "Se ha registrado exitosamente",
+        message: "El administrador se ha registrado exitosamente",
       });
     }
     await transporter.sendMail({
@@ -143,6 +151,13 @@ export const login = async (req: Request, res: Response) => {
     if (!userFound.isActive) {
       return res.status(401).json({ message: "Usuario inactivo" });
     }
+
+    const profileImg = await img_User.findUnique({
+      where: {
+        id: userFound.idProfile_img as string,
+      },
+    });
+
     const token = await createAccessToken({ id: userFound.id }, "1h");
     res.cookie("token", token);
     return res.json({
@@ -152,6 +167,7 @@ export const login = async (req: Request, res: Response) => {
       secondLastName: userFound.secondLastName,
       userName: userFound.userName,
       email: userFound.email,
+      profileImg: profileImg?.image,
       isAdmin: userFound.isAdmin,
     });
   } catch (error: any) {
@@ -182,7 +198,7 @@ export const profile = async (req: Request, res: Response) => {
     userName: userFound.userName,
     email: userFound.email,
     isAdmin: userFound.isAdmin,
-    createdAt: userFound.cratedAt,
+    createdAt: userFound.createdAt,
   });
 };
 
@@ -210,6 +226,11 @@ export const verifyToken = async (req: Request, res: Response) => {
       if (!userFound) {
         return res.status(401).json({ message: "No autorizado" });
       }
+      const profileImg = await img_User.findUnique({
+        where: {
+          id: userFound.idProfile_img as string,
+        },
+      });
       return res.json({
         id: userFound.id,
         name: userFound.name,
@@ -217,8 +238,8 @@ export const verifyToken = async (req: Request, res: Response) => {
         secondLastName: userFound.secondLastName,
         userName: userFound.userName,
         email: userFound.email,
+        profileImg: profileImg?.image,
         isAdmin: userFound.isAdmin,
-        createdAt: userFound.cratedAt,
       });
     });
     return;
@@ -243,6 +264,11 @@ export const verifyTokenMovil = async (req: Request, res: Response) => {
     if (!userFound) {
       return res.status(404).json(["No autorizado"]);
     }
+    const profileImg = await img_User.findUnique({
+      where: {
+        id: userFound.idProfile_img as string,
+      },
+    });
     return res.json({
       id: userFound.id,
       name: userFound.name,
@@ -250,6 +276,7 @@ export const verifyTokenMovil = async (req: Request, res: Response) => {
       secondLastName: userFound.secondLastName,
       userName: userFound.userName,
       email: userFound.email,
+      profileImg: profileImg?.image,
       isAdmin: userFound.isAdmin,
     });
   });
@@ -257,7 +284,14 @@ export const verifyTokenMovil = async (req: Request, res: Response) => {
 };
 
 export const editUserAcount = async (req: Request, res: Response) => {
-  const { email, newEmail, password, newPassword, userName, id } = req.body;
+  const { email, newEmail, password, newPassword, userName, id, profileImg } =
+    req.body;
+  let profilePicture: Express.Multer.File | undefined;
+  if (!profileImg) {
+    profilePicture = req.file;
+  }
+  console.log(profilePicture);
+
   try {
     const userFound = await User.findFirst({ where: { email } });
     if (!userFound) {

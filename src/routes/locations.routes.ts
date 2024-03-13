@@ -31,6 +31,7 @@ router.post(
     { name: "image1", maxCount: 1 },
     { name: "image2", maxCount: 1 },
   ]),
+  validateSchema(locationSchema),
   registerLocation
 );
 router.put(
@@ -39,8 +40,8 @@ router.put(
   validateSchema(locationSchema),
   editLocation
 );
-router.get("/locations/:id", getLocation);
 router.get("/locations/transports", getLocationsAndTransports);
+router.get("/locations/:id", getLocation);
 router.delete("/locations/:id", deleteLocation);
 router.get("/locations", getAllLocationsAndImages1);
 router.get("/locations/second/:id", getTravelsAndImage2);

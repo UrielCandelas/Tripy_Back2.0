@@ -1,6 +1,6 @@
 import { z } from "zod";
 const noSpecialChars = (value: string | undefined) =>
-  /^[a-zA-Z0-9]+$/.test(value ? value : "");
+  /^[a-zA-Z0-9 ]+$/.test(value ? value : "");
 
 export const locationSchema = z.object({
   location_name: z
@@ -29,15 +29,8 @@ export const locationSchema = z.object({
     .number({ required_error: "La calif es requerido" })
     .min(1, { message: "Debe haber por lo menos un caracter" })
     .optional(),
-  cost: z
-    .number({ required_error: "El costo es requerido" })
-    .min(1, { message: "Debe haber por lo menos un caracter" }),
   schedule: z
     .string({ required_error: "El horario es Requerido" })
     .min(1, { message: "Debe haber por lo menos un caracter" })
-    .max(20, { message: "La cantidad maxima de caracteres es 20" })
-    .refine(noSpecialChars, {
-      message: "El horario no puede contener caracteres especiales",
-    })
-    .optional(),
+    .max(20, { message: "La cantidad maxima de caracteres es 20" }),
 });
