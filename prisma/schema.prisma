@@ -187,7 +187,7 @@ model Travel_Request {
   id_user1  String   @db.Char(50)
   id_user2  String   @db.Char(50)
   id_travel String   @db.Char(50)
-  isActive  Boolean  @default(false)
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   //relations

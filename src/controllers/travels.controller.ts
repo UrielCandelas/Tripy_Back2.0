@@ -22,6 +22,7 @@ const Location = prisma.cat_Locations;
 const Extra = prisma.det_Extras;
 const Expenses = prisma.det_Expenses;
 const RequestTravel = prisma.travel_Request;
+const Images = prisma.img_Users;
 
 export const registerNewTravel = async (req: Request, res: Response) => {
   const {
@@ -404,6 +405,7 @@ export const getRequest = async (req: Request, res: Response) => {
   const arrTravels = [];
   const arrLocations = [];
   const arrUsers = [];
+  const arrImges = [];
   try {
     const requestValue = await RequestTravel.findMany({
       where: { id_user1: id, isActive: true },
@@ -421,12 +423,20 @@ export const getRequest = async (req: Request, res: Response) => {
 
       const requestUser = await getOneUser(requestValue[index].id_user2);
       arrUsers.push(requestUser);
+      
+      const imageFound = await Images.findUnique({
+        where: {
+          id: requestUser?.idProfile_img as string
+        }
+      })
+      arrImges.push(imageFound)
     }
     const objData = {
       request: arrRequest,
       travels: arrTravels,
       locations: arrLocations,
       users: arrUsers,
+      images: arrImges
     };
     return res.status(200).json(objData);
   } catch (error: any) {
