@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 import { validateSchema } from "../middlewares/validateZodSchema";
-import { travelSchema } from "../schemas/travels.schema";
+import { createTravelSchema } from "../schemas/travels.schema";
 import {
   registerNewTravel,
   addSecondUser,
@@ -22,7 +22,11 @@ router.put("/travels/shared", addSecondUser);
 
 router.put("/travels/secondShared/:id", deleteSecondUser);
 
-router.post("/my-travels", validateSchema(travelSchema), registerNewTravel);
+router.post(
+  "/my-travels",
+  validateSchema(createTravelSchema),
+  registerNewTravel
+);
 
 router.delete("/travels/:id", deleteTravel);
 

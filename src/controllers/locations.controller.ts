@@ -1,4 +1,9 @@
-import { PrismaClient, cat_Locations, img_Locations } from "@prisma/client";
+import {
+  PrismaClient,
+  cat_Locations,
+  det_Extras,
+  img_Locations,
+} from "@prisma/client";
 import { Request, Response } from "express";
 import { resizeImage } from "../lib/sharp.lib";
 import { getLocation as getOneLocation } from "../lib/travels.lib";
@@ -19,6 +24,7 @@ const Transports = prisma.cat_Transport;
 const Travel = prisma.travels;
 const Expenses = prisma.det_Expenses;
 const User = prisma.users;
+const Extras = prisma.det_Extras;
 
 export const registerLocation = async (req: Request, res: Response) => {
   const {
@@ -199,6 +205,7 @@ export const deleteLocation = async (req: Request, res: Response) => {
 
 export const getTravelsAndImage2 = async (req: Request, res: Response) => {
   const { id } = req.params;
+  const travelCards = [];
   try {
     const locationFound = await Locations.findUnique({
       where: { id },
@@ -211,8 +218,39 @@ export const getTravelsAndImage2 = async (req: Request, res: Response) => {
     const img = await img_Locations.findUnique({
       where: { id: locationFound?.id_locationImage2 },
     });
+
+    for (let index = 0; index < travelsFound.length; index++) {
+      const userFound = await User.findUnique({
+        where: { id: travelsFound[index].id_user1 },
+      });
+
+      const firstExpense = await Expenses.findFirst({
+        where: { id_travel: travelsFound[index].id },
+      });
+
+      let extraFound: det_Extras | null = null;
+      if (travelsFound[index].id_extras) {
+        extraFound = await Extras.findUnique({
+          where: { id: travelsFound[index].id_extras as string },
+        });
+      }
+
+      const transportation = await Transports.findUnique({
+        where: { id: travelsFound[index].id_transportation },
+      });
+
+      const card = {
+        user: userFound,
+        travel: travelsFound[index],
+        expense: firstExpense,
+        extra: extraFound,
+        transport: transportation,
+      };
+      travelCards.push(card);
+    }
+
     const data = {
-      travelsFound,
+      travelCards,
       image: img,
     };
     return res.status(200).json(data);

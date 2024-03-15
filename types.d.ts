@@ -5,7 +5,7 @@ export interface DataCards {
   usersName: string | undefined;
   quantity: Decimal | undefined;
   expenseName: string | undefined;
-  date: Date;
+  date: String;
   companions: number;
 }
 

@@ -57,8 +57,8 @@ model Travels {
   id_location       String           @db.Char(50)
   id_transportation Int              @db.Int
   id_extras         String?          @db.Char(50)
-  isActive          Boolean          @default(false)
-  travel_date       DateTime         @db.Date
+  isActive          Boolean          @default(true)
+  travel_date       String           @db.Char(10)
   companions        Int              @db.Int
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
