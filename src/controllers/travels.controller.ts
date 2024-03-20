@@ -2,7 +2,6 @@ import {
   PrismaClient,
   Travels,
   det_Expenses,
-  det_Extras,
   Travel_Request,
 } from "@prisma/client";
 import { Request, Response } from "express";
@@ -33,8 +32,7 @@ export const registerNewTravel = async (req: Request, res: Response) => {
     companions,
   }: Travels = req.body;
   const { quantity, expense }: det_Expenses = req.body;
-  const { extra_commentary }: det_Extras = req.body;
-  const extra = extra_commentary;
+  const { extra } = req.body;
   let expenseSaved;
   let extraSaved;
   try {
@@ -57,7 +55,7 @@ export const registerNewTravel = async (req: Request, res: Response) => {
     if (extra) {
       extraSaved = await Extra.create({
         data: {
-          extra_commentary,
+          extra_commentary: extra,
         },
       });
     }
@@ -116,9 +114,7 @@ export const addSecondUser = async (req: Request, res: Response) => {
     const requestUpdated = await RequestTravel.update({
       where: {
         id: id_request,
-        AND: {
-          isActive: true,
-        },
+        isActive: true,
       },
       data: {
         isActive: false,
@@ -206,7 +202,10 @@ export const addTravelRequest = async (req: Request, res: Response) => {
       return res.status(404).json(["No se encontro el viaje"]);
     }
     const requestFound = await RequestTravel.findFirst({
-      where: { id_user2: id_user2, isActive: true, id_user1: id_user1 },
+      where: {
+        id_user2: id_user2,
+        AND: { isActive: true, id_user1: id_user1 },
+      },
     });
     if (requestFound) {
       return res.status(401).json(["Ya tienes una solicitud pendiente"]);

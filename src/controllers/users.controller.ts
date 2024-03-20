@@ -10,6 +10,7 @@ const RequestTravel = prisma.travel_Request;
 const Commentary = prisma.user_Comments;
 const Chat = prisma.chat_Messages;
 const img_Users = prisma.img_Users;
+const img_Locations = prisma.img_Locations;
 const Expenses = prisma.det_Expenses;
 
 export const getUsersByRequest = async (req: Request, res: Response) => {
@@ -94,14 +95,17 @@ export const getContacts = async (req: Request, res: Response) => {
     for (let index = 0; index < travelFoundU1.length; index++) {
       if (travelFoundU1[index]) {
         const userFound = await getOneUser(
-          travelFoundU1[index]?.id_user2 as string
+          travelFoundU1[index]?.id_user2
+            ? (travelFoundU1[index]?.id_user2 as string)
+            : ""
         );
         const image = await img_Users.findUnique({
           where: {
-            id: userFound?.idProfile_img as string,
+            id: userFound?.idProfile_img
+              ? (userFound?.idProfile_img as string)
+              : "",
           },
         });
-
         if (userFound) {
           const dataContactsU1 = {
             id: userFound.id,
@@ -146,7 +150,6 @@ export const getContacts = async (req: Request, res: Response) => {
       return unique;
     }, []);
     res.status(200).json(uniqueContacts);
-    console.log(uniqueContacts);
   } catch (error) {
     console.log(error);
     res.status(500).json(["Ha ocurrido un error"]);
@@ -202,22 +205,29 @@ export const getComentsAndTravelsInactive = async (
   res: Response
 ) => {
   const { id } = req.params;
-  const arrUsers = [];
-  const arrCommentaries = [];
-  const expenses = [];
-  const locations = [];
-  const extras = [];
+  const cardU1 = [];
+  const cardU2 = [];
+  const reviews = [];
   try {
+    const user = await getOneUser(id);
+    const image = await img_Users.findUnique({
+      where: {
+        id: user?.idProfile_img as string,
+      },
+    });
     const commentariesFound = await Commentary.findMany({
       where: { id_userComented: id },
     });
     if (commentariesFound.length > 0) {
       for (let index = 0; index < commentariesFound.length; index++) {
-        arrCommentaries.push(commentariesFound[index]);
         const userFound = await getOneUser(
-          arrCommentaries[index].id_userComent
+          commentariesFound[index].id_userComent
         );
-        arrUsers.push(userFound);
+        const data = {
+          user: userFound,
+          comentary: commentariesFound[index],
+        };
+        reviews.push(data);
       }
     }
     const travelsFoundUser1 = await Travel.findMany({
@@ -235,32 +245,78 @@ export const getComentsAndTravelsInactive = async (
     if (!travelsFoundUser1 && !travelsFoundUser2) {
       return res.status(200).json(["No hay viajes"]);
     }
+
     for (let index = 0; index < travelsFoundUser1.length; index++) {
       if (travelsFoundUser1[index]) {
         const expensesFound = await Expenses.findMany({
-          where: { id: travelsFoundUser1[index].id },
+          where: { id_user1: travelsFoundUser1[index].id_user1 },
         });
-        expenses.push(expensesFound);
+        let totalexpenses = 0;
+        for (let index = 0; index < expensesFound.length; index++) {
+          const data = expensesFound[index].quantity;
+          totalexpenses += data.toNumber();
+        }
         const locationFound = await getLocation(
           travelsFoundUser1[index].id_location
         );
-        locations.push(locationFound);
+        const image2Found = await img_Locations.findUnique({
+          where: {
+            id: locationFound?.id_locationImage2,
+          },
+        });
         const extrasFound = await getExtras(
           travelsFoundUser1[index].id_extras as string
         );
-        if (extrasFound) {
-          extras.push(extrasFound);
-        }
+        const data = {
+          travel: travelsFoundUser1[index],
+          quantity: totalexpenses,
+          expense: expensesFound[0].expense,
+          location: locationFound,
+          extras: extrasFound ? extrasFound : null,
+          image: image2Found?.image,
+        };
+        cardU1.push(data);
       }
     }
+    for (let index = 0; index < travelsFoundUser2.length; index++) {
+      if (travelsFoundUser2[index]) {
+        const expensesFound = await Expenses.findMany({
+          where: { id_user1: travelsFoundUser2[index].id_user1 },
+        });
+        let totalexpenses = 0;
+        for (let index = 0; index < expensesFound.length; index++) {
+          const data = expensesFound[index].quantity;
+          totalexpenses += data.toNumber();
+        }
+        const locationFound = await getLocation(
+          travelsFoundUser2[index].id_location
+        );
+        const image2Found = await img_Locations.findUnique({
+          where: {
+            id: locationFound?.id_locationImage2,
+          },
+        });
+        const extrasFound = await getExtras(
+          travelsFoundUser2[index].id_extras as string
+        );
+        const data = {
+          travel: travelsFoundUser2[index],
+          quantity: totalexpenses,
+          expense: expensesFound[0].expense,
+          location: locationFound,
+          extras: extrasFound ? extrasFound : null,
+          image: image2Found?.image,
+        };
+        cardU2.push(data);
+      }
+    }
+
     const data = {
-      travels: travelsFoundUser1,
-      sharedTravels: travelsFoundUser2,
-      locations: locations,
-      expenses: expenses,
-      extras: extras,
-      users: arrUsers,
-      commentaries: arrCommentaries,
+      reviews,
+      myTravels: cardU1,
+      sharedTravels: cardU2,
+      user,
+      image: image?.image,
     };
     return res.status(200).json(data);
   } catch (error: any) {
