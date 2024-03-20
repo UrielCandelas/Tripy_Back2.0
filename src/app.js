@@ -10,6 +10,7 @@ import { Server } from "socket.io";
 import authRoutes from './routes/auth.routes'
 import locationRoutes from './routes/locations.routes'
 import travelsRoutes from './routes/travels.routes'
+import userRoutes from './routes/users.routes'
 
 const app = express();
 const httpServer = createServer(app);
@@ -42,6 +43,7 @@ app.use(cookieParser());
 app.use('/api', authRoutes)
 app.use('/api', locationRoutes)
 app.use('/api', travelsRoutes)
+app.use('/api', userRoutes)
 
 global.onlineUsers = new Map();
 

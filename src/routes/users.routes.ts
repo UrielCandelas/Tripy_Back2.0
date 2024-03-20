@@ -7,6 +7,7 @@ import {
   getContacts,
   registerNewMessage,
   getMessages,
+  getComentsAndTravelsInactive,
 } from "../controllers/users.controller";
 
 import { userCommentarySchema } from "../schemas/userCommentary.schema";
@@ -29,5 +30,7 @@ router.get("/user/contacts/:id", getContacts);
 router.post("/user/message", registerNewMessage);
 
 router.post("/user/get/messages", getMessages);
+
+router.get("/user/coments/travels/:id", getComentsAndTravelsInactive);
 
 export default router;

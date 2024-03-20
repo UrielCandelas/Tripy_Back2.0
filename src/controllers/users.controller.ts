@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
-import { getOneUser } from "../lib/travels.lib";
+import { getOneUser, getLocation, getExtras } from "../lib/travels.lib";
 import { Contact } from "../../types";
 
 const prisma = new PrismaClient();
@@ -9,6 +9,8 @@ const Travel = prisma.travels;
 const RequestTravel = prisma.travel_Request;
 const Commentary = prisma.user_Comments;
 const Chat = prisma.chat_Messages;
+const img_Users = prisma.img_Users;
+const Expenses = prisma.det_Expenses;
 
 export const getUsersByRequest = async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -94,6 +96,12 @@ export const getContacts = async (req: Request, res: Response) => {
         const userFound = await getOneUser(
           travelFoundU1[index]?.id_user2 as string
         );
+        const image = await img_Users.findUnique({
+          where: {
+            id: userFound?.idProfile_img as string,
+          },
+        });
+
         if (userFound) {
           const dataContactsU1 = {
             id: userFound.id,
@@ -101,6 +109,7 @@ export const getContacts = async (req: Request, res: Response) => {
             userName: userFound.userName,
             lastName: userFound.lastName,
             email: userFound.email,
+            profileImg: image?.image,
           };
           contacts.push(dataContactsU1);
         }
@@ -109,6 +118,11 @@ export const getContacts = async (req: Request, res: Response) => {
     for (let index = 0; index < travelFoundU2.length; index++) {
       if (travelFoundU2[index]) {
         const userFound = await getOneUser(travelFoundU2[index].id_user1);
+        const image = await img_Users.findUnique({
+          where: {
+            id: userFound?.idProfile_img as string,
+          },
+        });
         if (userFound) {
           const dataContactsU2 = {
             id: userFound.id,
@@ -116,6 +130,7 @@ export const getContacts = async (req: Request, res: Response) => {
             userName: userFound.userName,
             lastName: userFound.lastName,
             email: userFound.email,
+            profileImg: image?.image,
           };
           contacts.push(dataContactsU2);
         }
@@ -131,6 +146,7 @@ export const getContacts = async (req: Request, res: Response) => {
       return unique;
     }, []);
     res.status(200).json(uniqueContacts);
+    console.log(uniqueContacts);
   } catch (error) {
     console.log(error);
     res.status(500).json(["Ha ocurrido un error"]);
@@ -147,7 +163,7 @@ export const getMessages = async (req: Request, res: Response) => {
         },
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: "asc",
       },
     });
     const PMessages = messages.map((message) => {
@@ -178,5 +194,77 @@ export const registerNewMessage = async (req: Request, res: Response) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json(["Ha ocurrido un error"]);
+  }
+};
+
+export const getComentsAndTravelsInactive = async (
+  req: Request,
+  res: Response
+) => {
+  const { id } = req.params;
+  const arrUsers = [];
+  const arrCommentaries = [];
+  const expenses = [];
+  const locations = [];
+  const extras = [];
+  try {
+    const commentariesFound = await Commentary.findMany({
+      where: { id_userComented: id },
+    });
+    if (commentariesFound.length > 0) {
+      for (let index = 0; index < commentariesFound.length; index++) {
+        arrCommentaries.push(commentariesFound[index]);
+        const userFound = await getOneUser(
+          arrCommentaries[index].id_userComent
+        );
+        arrUsers.push(userFound);
+      }
+    }
+    const travelsFoundUser1 = await Travel.findMany({
+      where: {
+        id_user1: id,
+        isActive: false,
+      },
+    });
+    const travelsFoundUser2 = await Travel.findMany({
+      where: {
+        id_user2: id,
+        isActive: false,
+      },
+    });
+    if (!travelsFoundUser1 && !travelsFoundUser2) {
+      return res.status(200).json(["No hay viajes"]);
+    }
+    for (let index = 0; index < travelsFoundUser1.length; index++) {
+      if (travelsFoundUser1[index]) {
+        const expensesFound = await Expenses.findMany({
+          where: { id: travelsFoundUser1[index].id },
+        });
+        expenses.push(expensesFound);
+        const locationFound = await getLocation(
+          travelsFoundUser1[index].id_location
+        );
+        locations.push(locationFound);
+        const extrasFound = await getExtras(
+          travelsFoundUser1[index].id_extras as string
+        );
+        if (extrasFound) {
+          extras.push(extrasFound);
+        }
+      }
+    }
+    const data = {
+      travels: travelsFoundUser1,
+      sharedTravels: travelsFoundUser2,
+      locations: locations,
+      expenses: expenses,
+      extras: extras,
+      users: arrUsers,
+      commentaries: arrCommentaries,
+    };
+    return res.status(200).json(data);
+  } catch (error: any) {
+    console.log(error);
+    return res.status(500).json([`Ha ocurrido un error: ${error.message}`]);
   }
 };

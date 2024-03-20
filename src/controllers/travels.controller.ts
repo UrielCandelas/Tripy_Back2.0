@@ -110,12 +110,15 @@ export const addSecondUser = async (req: Request, res: Response) => {
       },
       data: {
         id_user2,
+        isActive: false,
       },
     });
     const requestUpdated = await RequestTravel.update({
       where: {
         id: id_request,
-        isActive: true,
+        AND: {
+          isActive: true,
+        },
       },
       data: {
         isActive: false,
@@ -188,7 +191,7 @@ export const getAllExtras = async (req: Request, res: Response) => {
 };
 
 export const addTravelRequest = async (req: Request, res: Response) => {
-  const { id_user1, id_user2, id_travel }:Travel_Request = req.body;
+  const { id_user1, id_user2, id_travel }: Travel_Request = req.body;
   try {
     const travelFound = await getTravel(id_travel);
     const user1Found = await getOneUser(id_user1);
@@ -203,7 +206,7 @@ export const addTravelRequest = async (req: Request, res: Response) => {
       return res.status(404).json(["No se encontro el viaje"]);
     }
     const requestFound = await RequestTravel.findFirst({
-      where: { id_user2: id_user2 , isActive: true, id_user1: id_user1 }
+      where: { id_user2: id_user2, isActive: true, id_user1: id_user1 },
     });
     if (requestFound) {
       return res.status(401).json(["Ya tienes una solicitud pendiente"]);
@@ -423,20 +426,20 @@ export const getRequest = async (req: Request, res: Response) => {
 
       const requestUser = await getOneUser(requestValue[index].id_user2);
       arrUsers.push(requestUser);
-      
+
       const imageFound = await Images.findUnique({
         where: {
-          id: requestUser?.idProfile_img as string
-        }
-      })
-      arrImges.push(imageFound)
+          id: requestUser?.idProfile_img as string,
+        },
+      });
+      arrImges.push(imageFound);
     }
     const objData = {
       request: arrRequest,
       travels: arrTravels,
       locations: arrLocations,
       users: arrUsers,
-      images: arrImges
+      images: arrImges,
     };
     return res.status(200).json(objData);
   } catch (error: any) {
