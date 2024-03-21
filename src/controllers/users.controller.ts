@@ -223,9 +223,15 @@ export const getComentsAndTravelsInactive = async (
         const userFound = await getOneUser(
           commentariesFound[index].id_userComent
         );
+        const imgReviews = await img_Users.findUnique({
+          where: {
+            id: userFound?.idProfile_img as string,
+          },
+        });
         const data = {
           user: userFound,
           comentary: commentariesFound[index],
+          imgReviews: imgReviews?.image,
         };
         reviews.push(data);
       }

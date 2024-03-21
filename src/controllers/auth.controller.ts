@@ -6,6 +6,13 @@ import { PrismaClient, Users } from "@prisma/client";
 import { getUserData, verifyGoogleToken } from "../lib/google.lib";
 import { OAuth2Client } from "google-auth-library";
 import transporter from "../lib/otp.lib";
+import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 const prisma = new PrismaClient();
 
 const User = prisma.users;
@@ -284,32 +291,51 @@ export const verifyTokenMovil = async (req: Request, res: Response) => {
 };
 
 export const editUserAcount = async (req: Request, res: Response) => {
-  const { email, newEmail, password, newPassword, userName, id, profileImg } =
-    req.body;
-  let profilePicture: Express.Multer.File | undefined;
-  if (!profileImg) {
-    profilePicture = req.file;
-  }
-  console.log(profilePicture);
+  const { email, oldPassword, newPassword, userName, id } = req.body;
+  const file = req.file;
 
   try {
-    const userFound = await User.findFirst({ where: { email } });
+    const userFound = await User.findUnique({ where: { id } });
     if (!userFound) {
       return res.status(404).json(["Usuario no encontrado"]);
     }
-    const userPass: string =
-      userFound.password != null ? userFound.password : "";
+    if (file) {
+      const response_img: UploadApiResponse | undefined = await new Promise(
+        (resolve, reject) => {
+          cloudinary.uploader
+            .upload_stream({}, (error, result) => {
+              if (error) {
+                reject(error);
+              }
+              resolve(result);
+            })
+            .end(file?.buffer);
+        }
+      );
+      await img_User.update({
+        where: {
+          id: userFound.idProfile_img as string,
+        },
+        data: {
+          image: response_img?.secure_url,
+        },
+      });
+    }
 
-    const compare = await bcrypt.compare(password, userPass);
+    const compare = await bcrypt.compare(
+      oldPassword,
+      userFound.password as string
+    );
 
     if (!compare) {
       return res.status(400).json(["Contraseña incorrecta"]);
     }
     const hash = await bcrypt.hash(newPassword, 12);
+
     const userUpdated = await User.update({
       where: { id: id },
       data: {
-        email: newEmail ? newEmail : userFound.email,
+        email: email ? email : userFound.email,
         password: hash ? hash : userFound.password,
         userName: userName ? userName : userFound.userName,
       },
@@ -323,6 +349,7 @@ export const editUserAcount = async (req: Request, res: Response) => {
       email: userUpdated.email,
       isAdmin: userUpdated.isAdmin,
     });
+    return;
   } catch (error: any) {
     console.log(error);
     return res.status(500).json([error.message]);
