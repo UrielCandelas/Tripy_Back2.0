@@ -81,7 +81,7 @@ export const register = async (req: Request, res: Response) => {
         id: newOTP.id,
       },
       data: {
-        token: token != undefined ? token : "",
+        token: token as string,
       },
     });
     const from = process.env.SENDER_EMAIL;
@@ -127,7 +127,16 @@ export const register = async (req: Request, res: Response) => {
       `,
     });
     res.cookie("verify", token);
-    return res.sendStatus(200);
+    return res.status(200).json({
+      id: newUser.id,
+      name: newUser.name,
+      lastName: newUser.lastName,
+      secondLastName: newUser.secondLastName,
+      userName: newUser.userName,
+      email: newUser.email,
+      profileImg: newProfileImg?.image,
+      isAdmin: newUser.isAdmin,
+    });
   } catch (error: any) {
     //Se envia un estatus 500 en caso de que falle el servidor
     console.log(error);
@@ -460,7 +469,21 @@ export const verifyOTP = async (req: Request, res: Response) => {
     res.cookie("token", token);
     await User.update({ where: { id: data.id }, data: { isActive: true } });
 
-    return res.sendStatus(200);
+    const profileImg = await img_User.findUnique({
+      where: {
+        id: userFound.idProfile_img as string,
+      },
+    });
+    return res.json({
+      id: userFound.id,
+      name: userFound.name,
+      lastName: userFound.lastName,
+      secondLastName: userFound.secondLastName,
+      userName: userFound.userName,
+      email: userFound.email,
+      profileImg: profileImg?.image,
+      isAdmin: userFound.isAdmin,
+    });
   });
   return;
 };
@@ -477,5 +500,128 @@ export const verifyIsActive = async (req: Request, res: Response) => {
     return res.status(200).json(false);
   } catch (error) {
     return res.status(500).json(["Error"]);
+  }
+};
+
+export const changeEmail = async (req: Request, res: Response) => {
+  const { email } = req.body;
+  const { id } = req.params;
+  try {
+    const userFound = await User.findUnique({ where: { id } });
+    if (!userFound) {
+      return res.status(400).json(["No se encontro el usuario"]);
+    }
+    const emailFound = await User.findFirst({ where: { email } });
+    if (emailFound) {
+      return res.status(400).json(["El correo ya existe"]);
+    }
+    const userUpdated = await User.update({
+      where: {
+        id: userFound.id,
+      },
+      data: {
+        email,
+      },
+    });
+    const otp = Math.floor(Math.random() * (9999 - 1000) + 1000);
+    const token = await createAccessToken({ otp: otp, id: userUpdated.id });
+
+    const otpUpdated = await OTP.update({
+      where: {
+        id: userFound.idOTP,
+      },
+      data: {
+        otp,
+        token: token as string,
+      },
+    });
+    const from = process.env.SENDER_EMAIL;
+    await transporter.sendMail({
+      from,
+      to: userUpdated.email,
+      subject: "Tripy - Verificación de correo",
+      text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+      html: `
+      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+
+        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+
+        <h2 style="color: #333; margin-bottom: 20px;">Este es tu codigo de verificación:</h2>
+
+        <div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block;">
+          <p style="color: #555; font-size: 18px; margin-bottom: 40px; font-weight: bold; color: #007bff;">${otpUpdated.otp}</p>
+        </div>
+
+        <div style="color: black; margin-top: 15px;">
+          <p>Ingresa este codigo de verificacion en la pagina de tripy para finalizar tu registro</p>
+        </div>
+
+        <footer style="color: #888; margin-top: 20px;">
+          <p>Por favor, no compartas este código con nadie. Si no realizaste esta acción, por favor, contacta con nosotros.</p>
+        </footer>
+
+      </body>
+      `,
+    });
+    res.cookie("verify", token);
+    return res.sendStatus(200);
+  } catch (error: any) {
+    console.log(error);
+    return res.status(500).json([error.message]);
+  }
+};
+
+export const resendOTP = async (req: Request, res: Response) => {
+  const { email } = req.body;
+  try {
+    const userFound = await User.findFirst({ where: { email } });
+    if (!userFound) {
+      return res.status(400).json(["No se encontro el usuario"]);
+    }
+    const otp = Math.floor(Math.random() * (9999 - 1000) + 1000);
+    const token = await createAccessToken({ otp: otp, id: userFound.id });
+
+    const otpUpdated = await OTP.update({
+      where: {
+        id: userFound.idOTP,
+      },
+      data: {
+        otp,
+        token: token as string,
+      },
+    });
+    const from = process.env.SENDER_EMAIL;
+    await transporter.sendMail({
+      from,
+      to: userFound.email,
+      subject: "Tripy - Verificación de correo",
+      text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+      html: `
+      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+
+        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+
+        <h2 style="color: #333; margin-bottom: 20px;">Este es tu codigo de verificación:</h2>
+
+        <div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block;">
+          <p style="color: #555; font-size: 18px; margin-bottom: 40px; font-weight: bold; color: #007bff;">${otpUpdated.otp}</p>
+        </div>
+
+        <div style="color: black; margin-top: 15px;">
+          <p>Ingresa este codigo de verificacion en la pagina de tripy para finalizar tu registro</p>
+        </div>
+
+        <footer style="color: #888; margin-top: 20px;">
+          <p>Por favor, no compartas este código con nadie. Si no realizaste esta acción, por favor, contacta con nosotros.</p>
+        </footer>
+
+      </body>
+      `,
+    });
+    res.cookie("verify", token);
+    return res.sendStatus(200);
+  } catch (error: any) {
+    console.log(error);
+    return res.status(500).json([error.message]);
   }
 };

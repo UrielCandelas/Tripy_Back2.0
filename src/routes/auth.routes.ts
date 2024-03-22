@@ -10,6 +10,8 @@ import {
   verifyIsActive,
   editUserAcount,
   verifyTokenMovil,
+  changeEmail,
+  resendOTP,
 } from "../controllers/auth.controller";
 import { validateSchema } from "../middlewares/validateZodSchema";
 import { registerSchema, loginSchema } from "../schemas/auth.schema";
@@ -44,5 +46,9 @@ router.post("/request", getAuthorizedURL);
 router.post("/auth/otp", verifyOTP);
 
 router.get("/auth/active/:id", verifyIsActive);
+
+router.put("/email/change/:id", changeEmail);
+
+router.post("/resend/otp", resendOTP);
 
 export default router;
