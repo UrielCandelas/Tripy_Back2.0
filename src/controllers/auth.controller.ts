@@ -93,6 +93,7 @@ export const register = async (req: Request, res: Response) => {
         },
         data: {
           isActive: true,
+          isVerified: true,
         },
       });
       return res.status(201).json({
@@ -168,6 +169,12 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Usuario inactivo" });
     }
 
+    if (!userFound.isVerified) {
+      return res.status(401).json({
+        message: "El usuario aun no ha sido validado por un administrador",
+      });
+    }
+
     const profileImg = await img_User.findUnique({
       where: {
         id: userFound.idProfile_img as string,
@@ -228,9 +235,24 @@ export const verifyToken = async (req: Request, res: Response) => {
     const tokenGoogle = await verifyGoogleToken(token);
 
     if (tokenGoogle != "Error") {
-      return res
-        .status(200)
-        .json({ name: tokenGoogle.name, email: tokenGoogle.email });
+      const userStoled = await User.findFirst({
+        where: { email: tokenGoogle.email as string },
+      });
+      const image = await img_User.findUnique({
+        where: {
+          id: userStoled?.idProfile_img as string,
+        },
+      });
+      return res.status(200).json({
+        id: userStoled?.id,
+        name: userStoled?.name,
+        lastName: userStoled?.lastName,
+        secondLastName: userStoled?.secondLastName,
+        userName: userStoled?.userName,
+        email: userStoled?.email,
+        profileImg: image?.image,
+        isAdmin: userStoled?.isAdmin,
+      });
     }
 
     const key = SECRET_KEY != undefined ? SECRET_KEY : "secret";
@@ -238,7 +260,9 @@ export const verifyToken = async (req: Request, res: Response) => {
       if (err) {
         return res.status(401).json({ message: "No autorizado" });
       }
-      const userFound = await User.findFirst({ where: { id: user.id } });
+      const userFound = await User.findFirst({
+        where: { id: user.id, isActive: true, isVerified: true },
+      });
       if (!userFound) {
         return res.status(401).json({ message: "No autorizado" });
       }
@@ -404,12 +428,20 @@ export const googleAuth = async (req: Request, res: Response) => {
 
     const userFound = await User.findFirst({ where: { email: data.email } });
     if (!userFound) {
+      console.log(data);
       const surnames = data.given_name.split(" ");
-      const name: string = data.name as string;
-      const lastName: string = surnames[0] as string;
-      const secondLastName: string = surnames[1] ? surnames[1] : null;
-      const userName: string = data.name as string;
-      const email: string = data.email;
+      const name = data.name as string;
+      const lastName = surnames[0] as string;
+      const secondLastName = surnames[1] ? surnames[1] : null;
+      const userName = data.name as string;
+      const email = data.email;
+      const image = data.picture;
+
+      const profileImg = await img_User.create({
+        data: {
+          image,
+        },
+      });
 
       await User.create({
         data: {
@@ -418,7 +450,8 @@ export const googleAuth = async (req: Request, res: Response) => {
           secondLastName,
           userName,
           email,
-          idOTP: "",
+          isActive: true,
+          idProfile_img: profileImg.id,
         },
       });
       console.log("Usuario creado correctamente");
@@ -443,14 +476,15 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
   jwt.verify(verify, SECRET_KEY as string, async (err: any, data: any) => {
     if (err) {
-      console.log(err);
       return res.status(401).json(["No autorizado"]);
     }
     const userFound = await User.findUnique({ where: { id: data.id } });
     if (!userFound) {
       return res.status(401).json(["No autorizado"]);
     }
-    const idOTP = await OTP.findUnique({ where: { id: userFound.idOTP } });
+    const idOTP = await OTP.findUnique({
+      where: { id: userFound.idOTP as string },
+    });
 
     if (verify != idOTP?.token) {
       return res.status(401).json(["No autorizado"]);
@@ -528,7 +562,7 @@ export const changeEmail = async (req: Request, res: Response) => {
 
     const otpUpdated = await OTP.update({
       where: {
-        id: userFound.idOTP,
+        id: userFound.idOTP as string,
       },
       data: {
         otp,
@@ -583,7 +617,7 @@ export const resendOTP = async (req: Request, res: Response) => {
 
     const otpUpdated = await OTP.update({
       where: {
-        id: userFound.idOTP,
+        id: userFound.idOTP as string,
       },
       data: {
         otp,

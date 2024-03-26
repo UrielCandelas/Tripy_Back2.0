@@ -1,5 +1,5 @@
 import { Router } from "express";
-
+import multer from "multer";
 import {
   getUsersByRequest,
   registerNewCommentary,
@@ -8,12 +8,25 @@ import {
   registerNewMessage,
   getMessages,
   getComentsAndTravelsInactive,
+  acceptRequest,
+  declineRequest,
+  getAccountRequest,
+  identitySender,
 } from "../controllers/users.controller";
 
 import { userCommentarySchema } from "../schemas/userCommentary.schema";
 import { validateSchema } from "../middlewares/validateZodSchema";
 
 const router = Router();
+
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 1024 * 1024,
+    files: 3,
+  },
+});
 
 router.get("/user/request/:id", getUsersByRequest);
 
@@ -32,5 +45,21 @@ router.post("/user/message", registerNewMessage);
 router.post("/user/get/messages", getMessages);
 
 router.get("/user/coments/travels/:id", getComentsAndTravelsInactive);
+
+router.post(
+  "/user/send/data",
+  upload.fields([
+    { name: "image1", maxCount: 1 },
+    { name: "image2", maxCount: 1 },
+    { name: "image3", maxCount: 1 },
+  ]),
+  identitySender
+);
+
+router.get("/admin/get/requests", getAccountRequest);
+
+router.put("/admin/accept/requests/:id", acceptRequest);
+
+router.put("/admin/decline/requests/:id", declineRequest);
 
 export default router;

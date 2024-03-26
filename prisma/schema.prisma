@@ -16,16 +16,17 @@ model Users {
   name              String              @db.Char(20)
   lastName          String              @db.Char(20)
   secondLastName    String?             @db.Char(20)
-  userName          String              @db.Char(15)
+  userName          String              @db.Char(100)
   password          String?             @db.Char(65)
-  idOTP             String              @db.Char(50)
+  idOTP             String?             @db.Char(50)
   idProfile_img     String?             @db.Char(50)
   isActive          Boolean             @default(false)
   isAdmin           Boolean             @default(false)
+  isVerified        Boolean             @default(false)
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   //relations
-  otp               OTP                 @relation(fields: [idOTP], references: [id])
+  otp               OTP?                @relation(fields: [idOTP], references: [id])
   image             img_Users?          @relation(fields: [idProfile_img], references: [id])
   TravelsU1         Travels[]           @relation(name: "TravelsID_1")
   TravelsU2         Travels[]           @relation(name: "TravelsID_2")
@@ -38,6 +39,7 @@ model Users {
   Travel_RequestU2  Travel_Request[]    @relation(name: "TravelRequestRelation1")
   Travel_RequestU1  Travel_Request[]    @relation(name: "TravelRequestRelation2")
   Location_Comments Location_Comments[]
+  UsersRequest      UsersRequest[]
 }
 
 model OTP {
@@ -194,4 +196,31 @@ model Travel_Request {
   user1     Users    @relation(name: "TravelRequestRelation1", fields: [id_user1], references: [id])
   user2     Users    @relation(name: "TravelRequestRelation2", fields: [id_user2], references: [id])
   travel    Travels  @relation(fields: [id_travel], references: [id])
+}
+
+model img_Documents {
+  id            String         @id @default(uuid())
+  image         String         @db.Text
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  //relations
+  UsersRequest1 UsersRequest[] @relation(name: "imageDocuments1")
+  UsersRequest2 UsersRequest[] @relation(name: "imageDocuments2")
+  UsersRequest3 UsersRequest[] @relation(name: "imageDocuments3")
+}
+
+model UsersRequest {
+  id             String        @id @default(uuid())
+  idUserImage    String        @db.Char(50)
+  idIDImageFront String        @db.Char(50)
+  idIDImageBack  String        @db.Char(50)
+  isActive       Boolean       @default(true)
+  idUser         String        @db.Char(50)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  //relations
+  image1         img_Documents @relation(name: "imageDocuments1", fields: [idUserImage], references: [id])
+  image2         img_Documents @relation(name: "imageDocuments2", fields: [idIDImageFront], references: [id])
+  image3         img_Documents @relation(name: "imageDocuments3", fields: [idIDImageBack], references: [id])
+  user           Users         @relation(fields: [idUser], references: [id])
 }

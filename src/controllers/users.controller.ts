@@ -2,6 +2,14 @@ import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import { getOneUser, getLocation, getExtras } from "../lib/travels.lib";
 import { Contact } from "../../types";
+import transporter from "../lib/otp.lib";
+import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const prisma = new PrismaClient();
 const User = prisma.users;
@@ -12,6 +20,8 @@ const Chat = prisma.chat_Messages;
 const img_Users = prisma.img_Users;
 const img_Locations = prisma.img_Locations;
 const Expenses = prisma.det_Expenses;
+const img_Documents = prisma.img_Documents;
+const UserRequests = prisma.usersRequest;
 
 export const getUsersByRequest = async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -328,5 +338,233 @@ export const getComentsAndTravelsInactive = async (
   } catch (error: any) {
     console.log(error);
     return res.status(500).json([`Ha ocurrido un error: ${error.message}`]);
+  }
+};
+
+export const identitySender = async (req: Request, res: Response) => {
+  const { id } = req.body;
+  if (!id) {
+    return res.status(400).json(["no hay ningun id"]);
+  }
+  const file1 = (req.files as { [fieldname: string]: Express.Multer.File[] })[
+    "image1"
+  ][0];
+
+  const file2 = (req.files as { [fieldname: string]: Express.Multer.File[] })[
+    "image2"
+  ][0];
+
+  const file3 = (req.files as { [fieldname: string]: Express.Multer.File[] })[
+    "image3"
+  ][0];
+  try {
+    const response_img1: UploadApiResponse | undefined = await new Promise(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({}, (error, result) => {
+            if (error) {
+              reject(error);
+            }
+            resolve(result);
+          })
+          .end(file1.buffer);
+      }
+    );
+    const response_img2: UploadApiResponse | undefined = await new Promise(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({}, (error, result) => {
+            if (error) {
+              reject(error);
+            }
+            resolve(result);
+          })
+          .end(file2.buffer);
+      }
+    );
+    const response_img3: UploadApiResponse | undefined = await new Promise(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({}, (error, result) => {
+            if (error) {
+              reject(error);
+            }
+            resolve(result);
+          })
+          .end(file3.buffer);
+      }
+    );
+    const newImage1 = await img_Documents.create({
+      data: {
+        image: response_img1?.secure_url as string,
+      },
+    });
+
+    const newImage2 = await img_Documents.create({
+      data: {
+        image: response_img2?.secure_url as string,
+      },
+    });
+
+    const newImage3 = await img_Documents.create({
+      data: {
+        image: response_img3?.secure_url as string,
+      },
+    });
+
+    const newRequest = await UserRequests.create({
+      data: {
+        idUser: id,
+        idIDImageFront: newImage1.id,
+        idIDImageBack: newImage2.id,
+        idUserImage: newImage3.id,
+      },
+    });
+    return res.status(200).json(newRequest);
+  } catch (error: any) {
+    console.log(error);
+    return res.status(500).json([error.message]);
+  }
+};
+
+export const getAccountRequest = async (_req: Request, res: Response) => {
+  const requests = [];
+  try {
+    const requestsFound = await UserRequests.findMany({
+      where: {
+        isActive: true,
+      },
+    });
+    for (let index = 0; index < requestsFound.length; index++) {
+      const userFound = await getOneUser(requestsFound[index].idUser);
+      const image1 = await img_Documents.findUnique({
+        where: {
+          id: requestsFound[index].idIDImageFront,
+        },
+      });
+      const image2 = await img_Documents.findUnique({
+        where: {
+          id: requestsFound[index].idIDImageBack,
+        },
+      });
+      const image3 = await img_Documents.findUnique({
+        where: {
+          id: requestsFound[index].idUserImage,
+        },
+      });
+      requests.push({
+        id: requestsFound[index].id,
+        name: userFound?.name,
+        lastName: userFound?.lastName,
+        secondLastName: userFound?.secondLastName,
+        email: userFound?.email,
+        IDImageFront: image1?.image,
+        IDImageBack: image2?.image,
+        imageUser: image3?.image,
+      });
+    }
+    return res.status(200).json(requests);
+  } catch (error: any) {
+    return res.status(500).json([error.message]);
+  }
+};
+
+export const acceptRequest = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const requestFound = await UserRequests.findUnique({ where: { id } });
+    if (!requestFound) {
+      return res.status(404).json(["No se encontro la solicitud"]);
+    }
+    await UserRequests.update({
+      where: {
+        id,
+      },
+      data: {
+        isActive: false,
+      },
+    });
+    const userVerified = await User.update({
+      where: {
+        id: requestFound.idUser,
+        isActive: true,
+      },
+      data: {
+        isVerified: true,
+      },
+    });
+    const from = process.env.SENDER_EMAIL;
+    await transporter.sendMail({
+      from,
+      to: userVerified.email,
+      subject: "Tripy - Identidad verificada",
+      text: `Tu identidad ha sido verificada, gracias por usar Tripy`,
+      html: `
+      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+
+        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+
+        <h2 style="color: #333; margin-bottom: 20px;">Tu identidad ha sido verificada</h2>
+
+        <h3 style="color: #333; margin-bottom: 20px;">Tu cuenta ha sido verificada y aceptada, sientete libre de usar Tripy</h3>
+      </body>
+      `,
+    });
+    return res.sendStatus(200);
+  } catch (error: any) {
+    return res.status(500).json([error.message]);
+  }
+};
+
+export const declineRequest = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+  console.log(id);
+
+  try {
+    const requestFound = await UserRequests.findUnique({ where: { id } });
+    const iduser = requestFound?.idUser;
+    if (!requestFound) {
+      return res.status(404).json(["No se encontro la solicitud"]);
+    }
+    const userDisabled = await User.findUnique({
+      where: {
+        id: requestFound.idUser,
+      },
+    });
+    const userData = userDisabled;
+    await UserRequests.delete({
+      where: {
+        id,
+        isActive: true,
+      },
+    });
+    await User.delete({
+      where: {
+        id: iduser,
+        isActive: true,
+      },
+    });
+    const from = process.env.SENDER_EMAIL;
+    await transporter.sendMail({
+      from,
+      to: userData?.email,
+      subject: "Tripy - Solicitud Rechazada",
+      text: `Lamentablemente tu solicitud ha sido rechazada debido a: ${reason}, los datos que enviaste se eliminaran de nuestros registros`,
+      html: `
+      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+
+        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+
+        <h2 style="color: #333; margin-bottom: 20px;">Tu identidad no se ha podido verificar</h2>
+
+        <h3 style="color: #333; margin-bottom: 20px;">Lamentablemente tu solicitud ha sido rechazada debido a: ${reason}, los datos que enviaste se eliminaran de nuestros registros, en caso de querer volver a usar Tripy, vuelve a realizar un registro pero con tus datos ya correjidos</h3>
+      </body>
+      `,
+    });
+    return res.sendStatus(200);
+  } catch (error: any) {
+    console.log(error);
+    return res.status(500).json([error.message]);
   }
 };
