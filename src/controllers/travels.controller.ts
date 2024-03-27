@@ -22,6 +22,7 @@ const Extra = prisma.det_Extras;
 const Expenses = prisma.det_Expenses;
 const RequestTravel = prisma.travel_Request;
 const Images = prisma.img_Users;
+const Users = prisma.users;
 
 export const registerNewTravel = async (req: Request, res: Response) => {
   const {
@@ -43,6 +44,16 @@ export const registerNewTravel = async (req: Request, res: Response) => {
     if (!getLocation || !getUser) {
       return res.status(400).json(["No se encontro el usuario o la ubicacion"]);
     }
+    const travelFound = await Travel.findFirst({
+      where: {
+        isActive: true,
+        OR: [{ id_user1: getUser.id }, { id_user2: getUser.id }],
+      },
+    });
+    if (travelFound) {
+      return res.status(409).json(["Ya tienes un viaje activo"]);
+    }
+
     if (quantity) {
       expenseSaved = await Expenses.create({
         data: {
@@ -444,5 +455,88 @@ export const getRequest = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.log(error);
     return res.status(500).json([`Ha ocurrido un error: ${error.message}`]);
+  }
+};
+
+export const addExpenseToTravel = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { id_user1, id_user2, expense, quantity } = req.body;
+  try {
+    const travelFound = await Travel.findFirst({
+      where: { id, isActive: true },
+    });
+    if (!travelFound) {
+      return res.status(404).json(["No se encontro el viaje"]);
+    }
+    const newExpense = await Expenses.create({
+      data: {
+        id_user1,
+        id_user2,
+        id_travel: id,
+        expense,
+        quantity,
+      },
+    });
+    return res.status(200).json(newExpense);
+  } catch (error: any) {
+    return res.status(500).json([error.message]);
+  }
+};
+
+export const getTravelExpenses = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const travelFound = await Travel.findFirst({
+      where: { id, isActive: true },
+    });
+    if (!travelFound) {
+      return res.status(404).json(["No se encontro el viaje"]);
+    }
+    const expensesFound = await Expenses.findMany({
+      where: { id_travel: id },
+    });
+    return res.status(200).json(expensesFound);
+  } catch (error: any) {
+    return res.status(500).json([error.message]);
+  }
+};
+
+export const getTravelsAndUsers = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const travelFound = await Travel.findFirst({
+      where: {
+        isActive: true,
+        OR: [{ id_user1: id }, { id_user2: id }],
+      },
+    });
+    if (!travelFound) {
+      return res.status(404).json(["No se encontro el viaje"]);
+    }
+    const locationFound = await getLocation(travelFound?.id_location as string);
+    const user1Found = await Users.findUnique({
+      where: {
+        id: travelFound?.id_user1 as string,
+      },
+    });
+    const user2Found = await Users.findUnique({
+      where: {
+        id: travelFound?.id_user2 as string,
+      },
+    });
+    const data = {
+      user1: {
+        id: user1Found?.id as string,
+        name: user1Found?.name as string,
+      },
+      user2: {
+        id: user2Found?.id as string,
+        name: user2Found?.name as string,
+      },
+      location: locationFound,
+    };
+    return res.status(200).json(data);
+  } catch (error: any) {
+    return res.status(500).json([error.message]);
   }
 };

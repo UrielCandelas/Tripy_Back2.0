@@ -13,6 +13,9 @@ import {
   getTravelsI,
   getTravelsA,
   getRequest,
+  addExpenseToTravel,
+  getTravelExpenses,
+  getTravelsAndUsers,
 } from "../controllers/travels.controller";
 
 const router = Router();
@@ -23,7 +26,7 @@ router.put("/travels/shared", addSecondUser);
 router.put("/travels/secondShared/:id", deleteSecondUser);
 
 router.post(
-  "/my-travels",
+  "/travels/add/new",
   validateSchema(createTravelSchema),
   registerNewTravel
 );
@@ -41,5 +44,12 @@ router.get("/travels/requested/inactive/:id", getTravelsI);
 router.get("/travels/requested/active/:id", getTravelsA);
 
 router.get("/request/get/:id", getRequest);
+
+router.post("/travels/expenses/add", addExpenseToTravel);
+
+//no creo que este sea necesario puedo meterlo en otra func
+router.get("/travels/expenses/get/:id", getTravelExpenses);
+
+router.get("/travels/expenses/users/:id", getTravelsAndUsers);
 
 export default router;
