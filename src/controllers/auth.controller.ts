@@ -470,6 +470,7 @@ export const googleAuth = async (req: Request, res: Response) => {
 export const verifyOTP = async (req: Request, res: Response) => {
   const { otp } = req.body;
   const { verify } = req.cookies;
+  console.log(otp)
   if (!verify || !otp) {
     return res.status(400).json(["No autorizado"]);
   }
@@ -501,6 +502,57 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
     const token = await createAccessToken({ id: userFound.id }, "1h");
     res.cookie("token", token);
+    await User.update({ where: { id: data.id }, data: { isActive: true } });
+
+    const profileImg = await img_User.findUnique({
+      where: {
+        id: userFound.idProfile_img as string,
+      },
+    });
+    return res.json({
+      id: userFound.id,
+      name: userFound.name,
+      lastName: userFound.lastName,
+      secondLastName: userFound.secondLastName,
+      userName: userFound.userName,
+      email: userFound.email,
+      profileImg: profileImg?.image,
+      isAdmin: userFound.isAdmin,
+    });
+  });
+  return;
+};
+
+export const verifyOTPMovil = async (req: Request, res: Response) => {
+  const { otp, verify } = req.body;
+  console.log(otp)
+  if (!verify || !otp) {
+    return res.status(400).json(["No autorizado"]);
+  }
+
+  jwt.verify(verify, SECRET_KEY as string, async (err: any, data: any) => {
+    if (err) {
+      return res.status(401).json(["No autorizado"]);
+    }
+    const userFound = await User.findUnique({ where: { id: data.id } });
+    if (!userFound) {
+      return res.status(401).json(["No autorizado"]);
+    }
+    const idOTP = await OTP.findUnique({
+      where: { id: userFound.idOTP as string },
+    });
+
+    if (verify != idOTP?.token) {
+      return res.status(401).json(["No autorizado"]);
+    }
+
+    if (idOTP?.otp != otp || idOTP?.otp != data.otp) {
+      console.log(`el otp es ${otp} y el userFound.otp es ${idOTP?.otp}`);
+      console.log("aca llega2");
+      return res.status(401).json(["No autorizado"]);
+    }
+
+    // const token = await createAccessToken({ id: userFound.id }, "1h");
     await User.update({ where: { id: data.id }, data: { isActive: true } });
 
     const profileImg = await img_User.findUnique({

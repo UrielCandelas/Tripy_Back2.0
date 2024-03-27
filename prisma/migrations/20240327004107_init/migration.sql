@@ -5,12 +5,13 @@ CREATE TABLE `Users` (
     `name` CHAR(20) NOT NULL,
     `lastName` CHAR(20) NOT NULL,
     `secondLastName` CHAR(20) NULL,
-    `userName` CHAR(15) NOT NULL,
+    `userName` CHAR(100) NOT NULL,
     `password` CHAR(65) NULL,
-    `idOTP` CHAR(50) NOT NULL,
+    `idOTP` CHAR(50) NULL,
     `idProfile_img` CHAR(50) NULL,
     `isActive` BOOLEAN NOT NULL DEFAULT false,
     `isAdmin` BOOLEAN NOT NULL DEFAULT false,
+    `isVerified` BOOLEAN NOT NULL DEFAULT false,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -167,8 +168,32 @@ CREATE TABLE `Travel_Request` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateTable
+CREATE TABLE `img_Documents` (
+    `id` VARCHAR(191) NOT NULL,
+    `image` TEXT NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `UsersRequest` (
+    `id` VARCHAR(191) NOT NULL,
+    `idUserImage` CHAR(50) NOT NULL,
+    `idIDImageFront` CHAR(50) NOT NULL,
+    `idIDImageBack` CHAR(50) NOT NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `idUser` CHAR(50) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- AddForeignKey
-ALTER TABLE `Users` ADD CONSTRAINT `Users_idOTP_fkey` FOREIGN KEY (`idOTP`) REFERENCES `OTP`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Users` ADD CONSTRAINT `Users_idOTP_fkey` FOREIGN KEY (`idOTP`) REFERENCES `OTP`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Users` ADD CONSTRAINT `Users_idProfile_img_fkey` FOREIGN KEY (`idProfile_img`) REFERENCES `img_Users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
@@ -229,3 +254,15 @@ ALTER TABLE `Travel_Request` ADD CONSTRAINT `Travel_Request_id_user2_fkey` FOREI
 
 -- AddForeignKey
 ALTER TABLE `Travel_Request` ADD CONSTRAINT `Travel_Request_id_travel_fkey` FOREIGN KEY (`id_travel`) REFERENCES `Travels`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `UsersRequest` ADD CONSTRAINT `UsersRequest_idUserImage_fkey` FOREIGN KEY (`idUserImage`) REFERENCES `img_Documents`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `UsersRequest` ADD CONSTRAINT `UsersRequest_idIDImageFront_fkey` FOREIGN KEY (`idIDImageFront`) REFERENCES `img_Documents`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `UsersRequest` ADD CONSTRAINT `UsersRequest_idIDImageBack_fkey` FOREIGN KEY (`idIDImageBack`) REFERENCES `img_Documents`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `UsersRequest` ADD CONSTRAINT `UsersRequest_idUser_fkey` FOREIGN KEY (`idUser`) REFERENCES `Users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
