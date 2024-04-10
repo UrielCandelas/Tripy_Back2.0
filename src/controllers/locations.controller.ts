@@ -212,7 +212,7 @@ export const getTravelsAndImage2 = async (req: Request, res: Response) => {
     });
 
     const travelsFound = await Travel.findMany({
-      where: { id_location: id },
+      where: { id_location: id, id_user2: { not: undefined } },
     });
 
     const img = await img_Locations.findUnique({

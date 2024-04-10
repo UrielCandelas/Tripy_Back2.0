@@ -101,6 +101,7 @@ export const addSecondUser = async (req: Request, res: Response) => {
       where: {
         id_travel,
         isActive: true,
+        id: id_request,
       },
     });
 
@@ -131,6 +132,22 @@ export const addSecondUser = async (req: Request, res: Response) => {
         isActive: false,
       },
     });
+    const allRequests = await RequestTravel.findMany({
+      where: {
+        isActive: true,
+        id_travel,
+      },
+    });
+    for (let index = 0; index < allRequests.length; index++) {
+      await RequestTravel.update({
+        where: {
+          id: allRequests[index].id,
+        },
+        data: {
+          isActive: false,
+        },
+      });
+    }
 
     const data = {
       travel: travelUpdated,
@@ -144,7 +161,6 @@ export const addSecondUser = async (req: Request, res: Response) => {
   }
 };
 
-//añadir urgente
 export const deleteSecondUser = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
@@ -335,6 +351,7 @@ export const getTravelsA = async (req: Request, res: Response) => {
     const travelsFoundUser1 = await Travel.findMany({
       where: {
         id_user1: id,
+        id_user2: { not: null },
         isActive: true,
       },
     });
@@ -421,7 +438,7 @@ export const getRequest = async (req: Request, res: Response) => {
   const arrImges = [];
   try {
     const requestValue = await RequestTravel.findMany({
-      where: { id_user1: id, isActive: true },
+      where: { id_user1: id, isActive: true, id_user2: { not: undefined } },
     });
 
     for (let index = 0; index < requestValue.length; index++) {
