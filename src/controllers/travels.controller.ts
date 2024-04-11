@@ -23,6 +23,7 @@ const Expenses = prisma.det_Expenses;
 const RequestTravel = prisma.travel_Request;
 const Images = prisma.img_Users;
 const Users = prisma.users;
+const Coments = prisma.location_Comments;
 
 export const registerNewTravel = async (req: Request, res: Response) => {
   const {
@@ -557,3 +558,64 @@ export const getTravelsAndUsers = async (req: Request, res: Response) => {
     return res.status(500).json([error.message]);
   }
 };
+
+
+export const registerComentTr = async (req: Request, res: Response) => {
+  const { idUser , idLocation, uComent } = req.body;
+  try {
+    const newComent = await Coments.create({
+      data:{
+        id_location: idLocation,
+        id_user: idUser,
+        comment: uComent
+      }
+    })
+      
+    
+    return res.status(200).json(newComent);
+
+  } catch (error:any) {
+    console.log(error)
+    return res.status(500).json([error.message]);
+    
+  }
+}
+
+export const consultComent = async (req: Request, res: Response) => {
+  const { idLocation} = req.params;
+  const comentarios = [];
+  try {
+    const loadComents = await Coments.findMany({
+      where:{
+        id_location: idLocation
+      }
+    })
+
+    for (let i = 0; i < loadComents.length; i++) {
+      const user = await Users.findUnique({
+        where: {
+          id : loadComents[i].id_user
+        }
+      })
+      const obj = {
+        id: user?.id,
+        email: user?.email,
+        name:  user?.name,
+        lastName: user?.lastName,
+        lastSecName: user?.secondLastName,
+        userName: user?.userName,
+        comentario : loadComents[i].comment
+
+      }
+      comentarios.push(obj)
+
+    }
+      
+    
+    return res.status(200).json(comentarios);
+
+  } catch (error:any) {
+    return res.status(500).json([error.message]);
+
+  }
+}

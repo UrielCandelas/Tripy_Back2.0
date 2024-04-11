@@ -25,6 +25,8 @@ const Travel = prisma.travels;
 const Expenses = prisma.det_Expenses;
 const User = prisma.users;
 const Extras = prisma.det_Extras;
+const Coments = prisma.location_Comments;
+
 
 export const registerLocation = async (req: Request, res: Response) => {
   const {
@@ -206,13 +208,15 @@ export const deleteLocation = async (req: Request, res: Response) => {
 export const getTravelsAndImage2 = async (req: Request, res: Response) => {
   const { id } = req.params;
   const travelCards = [];
+  const comentarios = [];
+
   try {
     const locationFound = await Locations.findUnique({
       where: { id },
     });
 
     const travelsFound = await Travel.findMany({
-      where: { id_location: id, id_user2: { not: undefined } },
+      where: { id_location: id, id_user2: null  },
     });
 
     const img = await img_Locations.findUnique({
@@ -249,9 +253,38 @@ export const getTravelsAndImage2 = async (req: Request, res: Response) => {
       travelCards.push(card);
     }
 
+    const loadComents = await Coments.findMany({
+      where:{
+        id_location: id
+      }
+    })
+
+    for (let i = 0; i < loadComents.length; i++) {
+      const user = await User.findUnique({
+        where: {
+          id : loadComents[i].id_user
+        }
+      })
+      const obj = {
+        id: user?.id,
+        email: user?.email,
+        name:  user?.name,
+        lastName: user?.lastName,
+        lastSecName: user?.secondLastName,
+        userName: user?.userName,
+        comentario : loadComents[i].comment
+
+      }
+      comentarios.push(obj)
+
+    }
+
+    
+
     const data = {
       travelCards,
       image: img,
+      comentarios
     };
     return res.status(200).json(data);
   } catch (error: any) {

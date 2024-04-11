@@ -16,7 +16,9 @@ import {
   addExpenseToTravel,
   getTravelExpenses,
   getTravelsAndUsers,
+  registerComentTr,
 } from "../controllers/travels.controller";
+
 
 const router = Router();
 
@@ -51,5 +53,7 @@ router.post("/travels/expenses/add", addExpenseToTravel);
 router.get("/travels/expenses/get/:id", getTravelExpenses);
 
 router.get("/travels/expenses/users/:id", getTravelsAndUsers);
+
+router.post("/travels/locacionComentario", registerComentTr)
 
 export default router;
