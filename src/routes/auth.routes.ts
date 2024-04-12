@@ -12,6 +12,7 @@ import {
   verifyTokenMovil,
   changeEmail,
   resendOTP,
+  verifyOTPMovil,
 } from "../controllers/auth.controller";
 import { validateSchema } from "../middlewares/validateZodSchema";
 import { registerSchema, loginSchema } from "../schemas/auth.schema";
@@ -44,6 +45,8 @@ router.get("/oauth", googleAuth);
 router.post("/request", getAuthorizedURL);
 
 router.post("/auth/otp", verifyOTP);
+
+router.post("/auth/otp/movil", verifyOTPMovil);
 
 router.get("/auth/active/:id", verifyIsActive);
 
