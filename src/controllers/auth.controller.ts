@@ -192,6 +192,7 @@ export const login = async (req: Request, res: Response) => {
       email: userFound.email,
       profileImg: profileImg?.image,
       isAdmin: userFound.isAdmin,
+      token: token,
     });
   } catch (error: any) {
     //Se envia un estatus 500 en caso de que falle el servidor
