@@ -121,7 +121,6 @@ export const addSecondUser = async (req: Request, res: Response) => {
       },
       data: {
         id_user2,
-        isActive: false,
       },
     });
     const requestUpdated = await RequestTravel.update({
@@ -368,9 +367,21 @@ export const getTravelsA = async (req: Request, res: Response) => {
     for (let index = 0; index < travelsFoundUser1.length; index++) {
       if (travelsFoundUser1[index]) {
         const expensesFound = await Expenses.findMany({
-          where: { id: travelsFoundUser1[index].id },
+          where: {
+            id_user1: travelsFoundUser1[index].id_user1,
+            id_travel: travelsFoundUser1[index].id,
+          },
         });
-        expenses1.push(expensesFound);
+        let totalExpenses = 0;
+        for (let index = 0; index < expensesFound.length; index++) {
+          const data = expensesFound[index].quantity;
+          totalExpenses += data.toNumber();
+        }
+        const obj = {
+          totalExpenses: totalExpenses,
+          expenses: expensesFound,
+        };
+        expenses1.push(obj);
         const locationFound = await getLocation(
           travelsFoundUser1[index].id_location
         );
@@ -392,9 +403,21 @@ export const getTravelsA = async (req: Request, res: Response) => {
     for (let index = 0; index < travelsFoundUser2.length; index++) {
       if (travelsFoundUser2[index]) {
         const expensesFound = await Expenses.findMany({
-          where: { id: travelsFoundUser2[index].id },
+          where: {
+            id_user2: travelsFoundUser2[index].id_user2,
+            id_travel: travelsFoundUser2[index].id,
+          },
         });
-        expenses2.push(expensesFound);
+        let totalExpenses = 0;
+        for (let index = 0; index < expensesFound.length; index++) {
+          const data = expensesFound[index].quantity;
+          totalExpenses += data.toNumber();
+        }
+        const obj = {
+          totalExpenses: totalExpenses,
+          expenses: expensesFound,
+        };
+        expenses2.push(obj);
         const locationFound = await getLocation(
           travelsFoundUser2[index].id_location
         );
@@ -477,11 +500,10 @@ export const getRequest = async (req: Request, res: Response) => {
 };
 
 export const addExpenseToTravel = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { id_user1, id_user2, expense, quantity } = req.body;
+  const { id_travel, id_user1, id_user2, expense, quantity } = req.body;
   try {
     const travelFound = await Travel.findFirst({
-      where: { id, isActive: true },
+      where: { id: id_travel, isActive: true },
     });
     if (!travelFound) {
       return res.status(404).json(["No se encontro el viaje"]);
@@ -490,7 +512,7 @@ export const addExpenseToTravel = async (req: Request, res: Response) => {
       data: {
         id_user1,
         id_user2,
-        id_travel: id,
+        id_travel,
         expense,
         quantity,
       },
@@ -505,7 +527,7 @@ export const getTravelExpenses = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
     const travelFound = await Travel.findFirst({
-      where: { id, isActive: true },
+      where: { id },
     });
     if (!travelFound) {
       return res.status(404).json(["No se encontro el viaje"]);

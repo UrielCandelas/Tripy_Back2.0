@@ -64,7 +64,6 @@ export const registerNewCommentary = async (req: Request, res: Response) => {
 
 export const getComentariesByID = async (req: Request, res: Response) => {
   const { id } = req.params;
-  console.log(id);
   const arrUsers = [];
   const arrCommentaries = [];
   try {
@@ -265,7 +264,10 @@ export const getComentsAndTravelsInactive = async (
     for (let index = 0; index < travelsFoundUser1.length; index++) {
       if (travelsFoundUser1[index]) {
         const expensesFound = await Expenses.findMany({
-          where: { id_user1: travelsFoundUser1[index].id_user1 },
+          where: {
+            id_user1: travelsFoundUser1[index].id_user1,
+            id_travel: travelsFoundUser1[index].id,
+          },
         });
         let totalexpenses = 0;
         for (let index = 0; index < expensesFound.length; index++) {
@@ -283,13 +285,19 @@ export const getComentsAndTravelsInactive = async (
         const extrasFound = await getExtras(
           travelsFoundUser1[index].id_extras as string
         );
+        const userForTravel = await getOneUser(
+          travelsFoundUser1[index].id_user2 as string
+        );
+
         const data = {
           travel: travelsFoundUser1[index],
           quantity: totalexpenses,
-          expense: expensesFound[0].expense,
+          expense: expensesFound?.find((expense) => expense.id_user2 === null)
+            ?.expense,
           location: locationFound,
           extras: extrasFound ? extrasFound : null,
           image: image2Found?.image,
+          user: userForTravel,
         };
         cardU1.push(data);
       }
@@ -297,7 +305,10 @@ export const getComentsAndTravelsInactive = async (
     for (let index = 0; index < travelsFoundUser2.length; index++) {
       if (travelsFoundUser2[index]) {
         const expensesFound = await Expenses.findMany({
-          where: { id_user1: travelsFoundUser2[index].id_user1 },
+          where: {
+            id_user2: travelsFoundUser1[index].id_user2,
+            id_travel: travelsFoundUser1[index].id,
+          },
         });
         let totalexpenses = 0;
         for (let index = 0; index < expensesFound.length; index++) {
@@ -315,13 +326,18 @@ export const getComentsAndTravelsInactive = async (
         const extrasFound = await getExtras(
           travelsFoundUser2[index].id_extras as string
         );
+        const userForTravel = await getOneUser(
+          travelsFoundUser1[index].id_user1
+        );
         const data = {
           travel: travelsFoundUser2[index],
           quantity: totalexpenses,
-          expense: expensesFound[0].expense,
+          expense: expensesFound?.find((expense) => expense.id_user2 === null)
+            ?.expense,
           location: locationFound,
           extras: extrasFound ? extrasFound : null,
           image: image2Found?.image,
+          user: userForTravel,
         };
         cardU2.push(data);
       }
