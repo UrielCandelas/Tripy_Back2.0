@@ -471,7 +471,6 @@ export const googleAuth = async (req: Request, res: Response) => {
 export const verifyOTP = async (req: Request, res: Response) => {
   const { otp } = req.body;
   const { verify } = req.cookies;
-  console.log(otp)
   if (!verify || !otp) {
     return res.status(400).json(["No autorizado"]);
   }
@@ -526,7 +525,6 @@ export const verifyOTP = async (req: Request, res: Response) => {
 
 export const verifyOTPMovil = async (req: Request, res: Response) => {
   const { otp, verify } = req.body;
-  console.log(otp)
   if (!verify || !otp) {
     return res.status(400).json(["No autorizado"]);
   }
