@@ -5,15 +5,15 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
 async function connectDB() {
-  try {
-    await prisma.$connect();
-    console.log("Connected to DB");
-  } catch (error) {
-    throw new Error("Error connecting to database");
-  }
+	try {
+		await prisma.$connect();
+		console.log("Connected to DB");
+	} catch (error) {
+		throw new Error("Error connecting to database");
+	}
 }
 
 connectDB();
 app.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+	console.log(`Server listening on http://localhost:${PORT}`);
 });

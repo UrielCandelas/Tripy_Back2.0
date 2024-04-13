@@ -1,18 +1,18 @@
 import { Router } from "express";
 import {
-  register,
-  login,
-  logout,
-  getAuthorizedURL,
-  googleAuth,
-  verifyToken,
-  verifyOTP,
-  verifyIsActive,
-  editUserAcount,
-  verifyTokenMovil,
-  changeEmail,
-  resendOTP,
-  verifyOTPMovil,
+	register,
+	login,
+	logout,
+	getAuthorizedURL,
+	googleAuth,
+	verifyToken,
+	verifyOTP,
+	verifyIsActive,
+	editUserAcount,
+	verifyTokenMovil,
+	changeEmail,
+	resendOTP,
+	verifyOTPMovil,
 } from "../controllers/auth.controller";
 import { validateSchema } from "../middlewares/validateZodSchema";
 import { registerSchema, loginSchema } from "../schemas/auth.schema";
@@ -21,11 +21,11 @@ import multer from "multer";
 const router = Router();
 const storage = multer.memoryStorage();
 const upload = multer({
-  storage,
-  limits: {
-    fileSize: 1024 * 1024,
-    files: 1,
-  },
+	storage,
+	limits: {
+		fileSize: 1024 * 1024,
+		files: 1,
+	},
 });
 
 router.post("/register", validateSchema(registerSchema), register);

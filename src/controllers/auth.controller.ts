@@ -9,9 +9,9 @@ import transporter from "../lib/otp.lib";
 import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+	cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+	api_key: process.env.CLOUDINARY_API_KEY,
+	api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 const prisma = new PrismaClient();
 
@@ -21,91 +21,91 @@ const img_User = prisma.img_Users;
 const SECRET_KEY = process.env.SECRET_KEY;
 
 export const register = async (req: Request, res: Response) => {
-  const {
-    name,
-    lastName,
-    secondLastName,
-    userName,
-    email,
-    password,
-    isAdmin,
-  }: Users = req.body;
-  try {
-    const userFound = await User.findFirst({
-      where: { email: email },
-      select: { id: true },
-    });
-    const userNameFound = await User.findFirst({ where: { userName } });
-    if (userFound) {
-      return res
-        .status(400)
-        .json(["Ese correo ha sido anteriormente registrado"]);
-    }
-    if (userNameFound) {
-      return res
-        .status(400)
-        .json(["Ese nombre de usuario ha sido anteriormente registrado"]);
-    }
-    //Se encripta la contraseña
-    const hash = await bcrypt.hash(password ? password : "", 12);
-    const otp = Math.floor(Math.random() * (9999 - 1000) + 1000);
+	const {
+		name,
+		lastName,
+		secondLastName,
+		userName,
+		email,
+		password,
+		isAdmin,
+	}: Users = req.body;
+	try {
+		const userFound = await User.findFirst({
+			where: { email: email },
+			select: { id: true },
+		});
+		const userNameFound = await User.findFirst({ where: { userName } });
+		if (userFound) {
+			return res
+				.status(400)
+				.json(["Ese correo ha sido anteriormente registrado"]);
+		}
+		if (userNameFound) {
+			return res
+				.status(400)
+				.json(["Ese nombre de usuario ha sido anteriormente registrado"]);
+		}
+		//Se encripta la contraseña
+		const hash = await bcrypt.hash(password ? password : "", 12);
+		const otp = Math.floor(Math.random() * (9999 - 1000) + 1000);
 
-    const newOTP = await OTP.create({
-      data: {
-        otp,
-      },
-    });
-    const newProfileImg = await img_User.create({
-      data: {
-        image:
-          "https://res.cloudinary.com/dpeb20cjo/image/upload/v1710106219/perfil-de-usuario_obck36.webp",
-      },
-    });
-    const newUser = await User.create({
-      data: {
-        name,
-        lastName,
-        secondLastName,
-        userName,
-        email,
-        password: hash,
-        isAdmin,
-        idOTP: newOTP.id,
-        idProfile_img: newProfileImg.id,
-      },
-    });
-    const token = await createAccessToken({ otp: newOTP.otp, id: newUser.id });
+		const newOTP = await OTP.create({
+			data: {
+				otp,
+			},
+		});
+		const newProfileImg = await img_User.create({
+			data: {
+				image:
+					"https://res.cloudinary.com/dpeb20cjo/image/upload/v1710106219/perfil-de-usuario_obck36.webp",
+			},
+		});
+		const newUser = await User.create({
+			data: {
+				name,
+				lastName,
+				secondLastName,
+				userName,
+				email,
+				password: hash,
+				isAdmin,
+				idOTP: newOTP.id,
+				idProfile_img: newProfileImg.id,
+			},
+		});
+		const token = await createAccessToken({ otp: newOTP.otp, id: newUser.id });
 
-    const otpUpdated = await OTP.update({
-      where: {
-        id: newOTP.id,
-      },
-      data: {
-        token: token as string,
-      },
-    });
-    const from = process.env.SENDER_EMAIL;
+		const otpUpdated = await OTP.update({
+			where: {
+				id: newOTP.id,
+			},
+			data: {
+				token: token as string,
+			},
+		});
+		const from = process.env.SENDER_EMAIL;
 
-    if (newUser.isAdmin) {
-      await User.update({
-        where: {
-          id: newUser.id,
-        },
-        data: {
-          isActive: true,
-          isVerified: true,
-        },
-      });
-      return res.status(201).json({
-        message: "El administrador se ha registrado exitosamente",
-      });
-    }
-    await transporter.sendMail({
-      from,
-      to: newUser.email,
-      subject: "Tripy - Verificación de correo",
-      text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-      html: `
+		if (newUser.isAdmin) {
+			await User.update({
+				where: {
+					id: newUser.id,
+				},
+				data: {
+					isActive: true,
+					isVerified: true,
+				},
+			});
+			return res.status(201).json({
+				message: "El administrador se ha registrado exitosamente",
+			});
+		}
+		await transporter.sendMail({
+			from,
+			to: newUser.email,
+			subject: "Tripy - Verificación de correo",
+			text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+			html: `
       <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
         <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
@@ -126,507 +126,507 @@ export const register = async (req: Request, res: Response) => {
 
       </body>
       `,
-    });
-    res.cookie("verify", token);
-    return res.status(200).json({
-      id: newUser.id,
-      name: newUser.name,
-      lastName: newUser.lastName,
-      secondLastName: newUser.secondLastName,
-      userName: newUser.userName,
-      email: newUser.email,
-      profileImg: newProfileImg?.image,
-      isAdmin: newUser.isAdmin,
-    });
-  } catch (error: any) {
-    //Se envia un estatus 500 en caso de que falle el servidor
-    console.log(error);
-    return res.status(500).json([error.message]);
-  }
+		});
+		res.cookie("verify", token);
+		return res.status(200).json({
+			id: newUser.id,
+			name: newUser.name,
+			lastName: newUser.lastName,
+			secondLastName: newUser.secondLastName,
+			userName: newUser.userName,
+			email: newUser.email,
+			profileImg: newProfileImg?.image,
+			isAdmin: newUser.isAdmin,
+		});
+	} catch (error: any) {
+		//Se envia un estatus 500 en caso de que falle el servidor
+		console.log(error);
+		return res.status(500).json([error.message]);
+	}
 };
 
 export const login = async (req: Request, res: Response) => {
-  //Se obtiene el email y la contraseña de la peticion
-  const { email, password } = req.body;
+	//Se obtiene el email y la contraseña de la peticion
+	const { email, password } = req.body;
 
-  try {
-    //Se busca si ya existe el usuario
-    const userFound = await User.findFirst({ where: { email } });
+	try {
+		//Se busca si ya existe el usuario
+		const userFound = await User.findFirst({ where: { email } });
 
-    if (!userFound) {
-      //Si no existe se envia un estatus 404 de que no se ha do el usuario
-      return res.status(404).json({ message: "Usuario no encontrado" });
-    }
-    //Se compara la contraseña obtenida con la guardada en la base de datos
-    const userPass = userFound.password != null ? userFound.password : "";
-    const isMatch = await bcrypt.compare(password, userPass);
+		if (!userFound) {
+			//Si no existe se envia un estatus 404 de que no se ha do el usuario
+			return res.status(404).json({ message: "Usuario no encontrado" });
+		}
+		//Se compara la contraseña obtenida con la guardada en la base de datos
+		const userPass = userFound.password != null ? userFound.password : "";
+		const isMatch = await bcrypt.compare(password, userPass);
 
-    if (!isMatch) {
-      //Si no coinciden se envia un estatus 400
-      return res.status(400).json({ message: "Contraseña incorrecta" });
-    }
-    if (!userFound.isActive) {
-      return res.status(401).json({ message: "Usuario inactivo" });
-    }
+		if (!isMatch) {
+			//Si no coinciden se envia un estatus 400
+			return res.status(400).json({ message: "Contraseña incorrecta" });
+		}
+		if (!userFound.isActive) {
+			return res.status(401).json({ message: "Usuario inactivo" });
+		}
 
-    if (!userFound.isVerified) {
-      return res.status(401).json({
-        message: "El usuario aun no ha sido validado por un administrador",
-      });
-    }
+		if (!userFound.isVerified) {
+			return res.status(401).json({
+				message: "El usuario aun no ha sido validado por un administrador",
+			});
+		}
 
-    const profileImg = await img_User.findUnique({
-      where: {
-        id: userFound.idProfile_img as string,
-      },
-    });
+		const profileImg = await img_User.findUnique({
+			where: {
+				id: userFound.idProfile_img as string,
+			},
+		});
 
-    const token = await createAccessToken({ id: userFound.id }, "1h");
-    res.cookie("token", token);
-    return res.json({
-      id: userFound.id,
-      name: userFound.name,
-      lastName: userFound.lastName,
-      secondLastName: userFound.secondLastName,
-      userName: userFound.userName,
-      email: userFound.email,
-      profileImg: profileImg?.image,
-      isAdmin: userFound.isAdmin,
-      token: token,
-    });
-  } catch (error: any) {
-    //Se envia un estatus 500 en caso de que falle el servidor
-    return res.status(500).json({ message: error.message });
-  }
+		const token = await createAccessToken({ id: userFound.id }, "1h");
+		res.cookie("token", token);
+		return res.json({
+			id: userFound.id,
+			name: userFound.name,
+			lastName: userFound.lastName,
+			secondLastName: userFound.secondLastName,
+			userName: userFound.userName,
+			email: userFound.email,
+			profileImg: profileImg?.image,
+			isAdmin: userFound.isAdmin,
+			token: token,
+		});
+	} catch (error: any) {
+		//Se envia un estatus 500 en caso de que falle el servidor
+		return res.status(500).json({ message: error.message });
+	}
 };
 
 //Se crea el logout
 export const logout = (_req: Request, res: Response) => {
-  res.cookie("token", "", {
-    expires: new Date(0),
-  });
-  return res.sendStatus(200);
+	res.cookie("token", "", {
+		expires: new Date(0),
+	});
+	return res.sendStatus(200);
 };
 
 export const profile = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const userFound = await User.findUnique({ where: { id: id } });
-  if (!userFound) {
-    return res.status(404).json(["Usuario no encontrado"]);
-  }
-  return res.json({
-    id: userFound.id,
-    name: userFound.name,
-    lastName: userFound.lastName,
-    secondLastName: userFound.secondLastName,
-    userName: userFound.userName,
-    email: userFound.email,
-    isAdmin: userFound.isAdmin,
-    createdAt: userFound.createdAt,
-  });
+	const { id } = req.params;
+	const userFound = await User.findUnique({ where: { id: id } });
+	if (!userFound) {
+		return res.status(404).json(["Usuario no encontrado"]);
+	}
+	return res.json({
+		id: userFound.id,
+		name: userFound.name,
+		lastName: userFound.lastName,
+		secondLastName: userFound.secondLastName,
+		userName: userFound.userName,
+		email: userFound.email,
+		isAdmin: userFound.isAdmin,
+		createdAt: userFound.createdAt,
+	});
 };
 
 //Se crea una funcion para verificar el token que se ingrese
 export const verifyToken = async (req: Request, res: Response) => {
-  try {
-    const { token } = req.cookies;
-    if (!token) {
-      return res.status(401).json({ message: "No autorizado" });
-    }
-    const tokenGoogle = await verifyGoogleToken(token);
+	try {
+		const { token } = req.cookies;
+		if (!token) {
+			return res.status(401).json({ message: "No autorizado" });
+		}
+		const tokenGoogle = await verifyGoogleToken(token);
 
-    if (tokenGoogle != "Error") {
-      const userStoled = await User.findFirst({
-        where: { email: tokenGoogle.email as string },
-      });
-      const image = await img_User.findUnique({
-        where: {
-          id: userStoled?.idProfile_img as string,
-        },
-      });
-      return res.status(200).json({
-        id: userStoled?.id,
-        name: userStoled?.name,
-        lastName: userStoled?.lastName,
-        secondLastName: userStoled?.secondLastName,
-        userName: userStoled?.userName,
-        email: userStoled?.email,
-        profileImg: image?.image,
-        isAdmin: userStoled?.isAdmin,
-      });
-    }
+		if (tokenGoogle != "Error") {
+			const userStoled = await User.findFirst({
+				where: { email: tokenGoogle.email as string },
+			});
+			const image = await img_User.findUnique({
+				where: {
+					id: userStoled?.idProfile_img as string,
+				},
+			});
+			return res.status(200).json({
+				id: userStoled?.id,
+				name: userStoled?.name,
+				lastName: userStoled?.lastName,
+				secondLastName: userStoled?.secondLastName,
+				userName: userStoled?.userName,
+				email: userStoled?.email,
+				profileImg: image?.image,
+				isAdmin: userStoled?.isAdmin,
+			});
+		}
 
-    const key = SECRET_KEY != undefined ? SECRET_KEY : "secret";
-    jwt.verify(token, key, async (err: any, user: any) => {
-      if (err) {
-        return res.status(401).json({ message: "No autorizado" });
-      }
-      const userFound = await User.findFirst({
-        where: { id: user.id, isActive: true, isVerified: true },
-      });
-      if (!userFound) {
-        return res.status(401).json({ message: "No autorizado" });
-      }
-      const profileImg = await img_User.findUnique({
-        where: {
-          id: userFound.idProfile_img as string,
-        },
-      });
-      return res.json({
-        id: userFound.id,
-        name: userFound.name,
-        lastName: userFound.lastName,
-        secondLastName: userFound.secondLastName,
-        userName: userFound.userName,
-        email: userFound.email,
-        profileImg: profileImg?.image,
-        isAdmin: userFound.isAdmin,
-      });
-    });
-    return;
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json(["Error al verificar el token"]);
-  }
+		const key = SECRET_KEY != undefined ? SECRET_KEY : "secret";
+		jwt.verify(token, key, async (err: any, user: any) => {
+			if (err) {
+				return res.status(401).json({ message: "No autorizado" });
+			}
+			const userFound = await User.findFirst({
+				where: { id: user.id, isActive: true, isVerified: true },
+			});
+			if (!userFound) {
+				return res.status(401).json({ message: "No autorizado" });
+			}
+			const profileImg = await img_User.findUnique({
+				where: {
+					id: userFound.idProfile_img as string,
+				},
+			});
+			return res.json({
+				id: userFound.id,
+				name: userFound.name,
+				lastName: userFound.lastName,
+				secondLastName: userFound.secondLastName,
+				userName: userFound.userName,
+				email: userFound.email,
+				profileImg: profileImg?.image,
+				isAdmin: userFound.isAdmin,
+			});
+		});
+		return;
+	} catch (error) {
+		console.log(error);
+		return res.status(500).json(["Error al verificar el token"]);
+	}
 };
 
 export const verifyTokenMovil = async (req: Request, res: Response) => {
-  const { token } = req.body;
-  if (!token) {
-    return res.status(401).json(["No autorizado"]);
-  }
-  const key = SECRET_KEY != undefined ? SECRET_KEY : "secret";
+	const { token } = req.body;
+	if (!token) {
+		return res.status(401).json(["No autorizado"]);
+	}
+	const key = SECRET_KEY != undefined ? SECRET_KEY : "secret";
 
-  jwt.verify(token, key, async (err: any, user: any) => {
-    if (err) {
-      return res.status(401).json(["No autorizado"]);
-    }
-    const userFound = await User.findUnique({ where: { id: user.id } });
-    if (!userFound) {
-      return res.status(404).json(["No autorizado"]);
-    }
-    const profileImg = await img_User.findUnique({
-      where: {
-        id: userFound.idProfile_img as string,
-      },
-    });
-    return res.json({
-      id: userFound.id,
-      name: userFound.name,
-      lastName: userFound.lastName,
-      secondLastName: userFound.secondLastName,
-      userName: userFound.userName,
-      email: userFound.email,
-      profileImg: profileImg?.image,
-      isAdmin: userFound.isAdmin,
-    });
-  });
-  return res.sendStatus(200);
+	jwt.verify(token, key, async (err: any, user: any) => {
+		if (err) {
+			return res.status(401).json(["No autorizado"]);
+		}
+		const userFound = await User.findUnique({ where: { id: user.id } });
+		if (!userFound) {
+			return res.status(404).json(["No autorizado"]);
+		}
+		const profileImg = await img_User.findUnique({
+			where: {
+				id: userFound.idProfile_img as string,
+			},
+		});
+		return res.json({
+			id: userFound.id,
+			name: userFound.name,
+			lastName: userFound.lastName,
+			secondLastName: userFound.secondLastName,
+			userName: userFound.userName,
+			email: userFound.email,
+			profileImg: profileImg?.image,
+			isAdmin: userFound.isAdmin,
+		});
+	});
+	return res.sendStatus(200);
 };
 
 export const editUserAcount = async (req: Request, res: Response) => {
-  const { email, oldPassword, newPassword, userName, id } = req.body;
-  const file = req.file;
+	const { email, oldPassword, newPassword, userName, id } = req.body;
+	const file = req.file;
 
-  try {
-    const userFound = await User.findUnique({ where: { id } });
-    if (!userFound) {
-      return res.status(404).json(["Usuario no encontrado"]);
-    }
-    if (file) {
-      const response_img: UploadApiResponse | undefined = await new Promise(
-        (resolve, reject) => {
-          cloudinary.uploader
-            .upload_stream({}, (error, result) => {
-              if (error) {
-                reject(error);
-              }
-              resolve(result);
-            })
-            .end(file?.buffer);
-        }
-      );
-      await img_User.update({
-        where: {
-          id: userFound.idProfile_img as string,
-        },
-        data: {
-          image: response_img?.secure_url,
-        },
-      });
-    }
+	try {
+		const userFound = await User.findUnique({ where: { id } });
+		if (!userFound) {
+			return res.status(404).json(["Usuario no encontrado"]);
+		}
+		if (file) {
+			const response_img: UploadApiResponse | undefined = await new Promise(
+				(resolve, reject) => {
+					cloudinary.uploader
+						.upload_stream({}, (error, result) => {
+							if (error) {
+								reject(error);
+							}
+							resolve(result);
+						})
+						.end(file?.buffer);
+				}
+			);
+			await img_User.update({
+				where: {
+					id: userFound.idProfile_img as string,
+				},
+				data: {
+					image: response_img?.secure_url,
+				},
+			});
+		}
 
-    const compare = await bcrypt.compare(
-      oldPassword,
-      userFound.password as string
-    );
+		const compare = await bcrypt.compare(
+			oldPassword,
+			userFound.password as string
+		);
 
-    if (!compare) {
-      return res.status(400).json(["Contraseña incorrecta"]);
-    }
-    const hash = await bcrypt.hash(newPassword, 12);
+		if (!compare) {
+			return res.status(400).json(["Contraseña incorrecta"]);
+		}
+		const hash = await bcrypt.hash(newPassword, 12);
 
-    const userUpdated = await User.update({
-      where: { id: id },
-      data: {
-        email: email ? email : userFound.email,
-        password: hash ? hash : userFound.password,
-        userName: userName ? userName : userFound.userName,
-      },
-    });
-    return res.status(200).json({
-      id: userUpdated.id,
-      name: userUpdated.name,
-      lastName: userUpdated.lastName,
-      secondLastName: userUpdated.secondLastName,
-      userName: userUpdated.userName,
-      email: userUpdated.email,
-      isAdmin: userUpdated.isAdmin,
-    });
-    return;
-  } catch (error: any) {
-    console.log(error);
-    return res.status(500).json([error.message]);
-  }
+		const userUpdated = await User.update({
+			where: { id: id },
+			data: {
+				email: email ? email : userFound.email,
+				password: hash ? hash : userFound.password,
+				userName: userName ? userName : userFound.userName,
+			},
+		});
+		return res.status(200).json({
+			id: userUpdated.id,
+			name: userUpdated.name,
+			lastName: userUpdated.lastName,
+			secondLastName: userUpdated.secondLastName,
+			userName: userUpdated.userName,
+			email: userUpdated.email,
+			isAdmin: userUpdated.isAdmin,
+		});
+		return;
+	} catch (error: any) {
+		console.log(error);
+		return res.status(500).json([error.message]);
+	}
 };
 
 export const getAuthorizedURL = async (_req: Request, res: Response) => {
-  res.header("Access-Control-Allow-Origin", "http://localhost:5173");
+	res.header("Access-Control-Allow-Origin", "http://localhost:5173");
 
-  res.header("Referer-Policy", "no-referrer-when-downgrade");
+	res.header("Referer-Policy", "no-referrer-when-downgrade");
 
-  const redirectUrl = "http://127.0.0.1:3000/api/oauth";
+	const redirectUrl = "http://127.0.0.1:3000/api/oauth";
 
-  const oAuth2Client = new OAuth2Client(
-    process.env.CLIENT_ID,
-    process.env.CLIENT_SECRET,
-    redirectUrl
-  );
+	const oAuth2Client = new OAuth2Client(
+		process.env.CLIENT_ID,
+		process.env.CLIENT_SECRET,
+		redirectUrl
+	);
 
-  const authorizeUrl = oAuth2Client.generateAuthUrl({
-    access_type: "offline",
-    scope:
-      "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid",
-    prompt: "consent",
-  });
-  res.json({ url: authorizeUrl });
+	const authorizeUrl = oAuth2Client.generateAuthUrl({
+		access_type: "offline",
+		scope:
+			"https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid",
+		prompt: "consent",
+	});
+	res.json({ url: authorizeUrl });
 };
 
 export const googleAuth = async (req: Request, res: Response) => {
-  const code = req.query.code;
-  try {
-    const redirectUrl = "http://127.0.0.1:3000/api/oauth";
-    const oAuth2Client = new OAuth2Client(
-      process.env.CLIENT_ID,
-      process.env.CLIENT_SECRET,
-      redirectUrl
-    );
-    const _code = code as string;
-    const response = await oAuth2Client.getToken(_code);
-    await oAuth2Client.setCredentials(response.tokens);
-    const user = oAuth2Client.credentials;
-    const data = await getUserData(user.access_token);
+	const code = req.query.code;
+	try {
+		const redirectUrl = "http://127.0.0.1:3000/api/oauth";
+		const oAuth2Client = new OAuth2Client(
+			process.env.CLIENT_ID,
+			process.env.CLIENT_SECRET,
+			redirectUrl
+		);
+		const _code = code as string;
+		const response = await oAuth2Client.getToken(_code);
+		await oAuth2Client.setCredentials(response.tokens);
+		const user = oAuth2Client.credentials;
+		const data = await getUserData(user.access_token);
 
-    const userFound = await User.findFirst({ where: { email: data.email } });
-    if (!userFound) {
-      console.log(data);
-      const surnames = data.given_name.split(" ");
-      const name = data.name as string;
-      const lastName = surnames[0] as string;
-      const secondLastName = surnames[1] ? surnames[1] : null;
-      const userName = data.name as string;
-      const email = data.email;
-      const image = data.picture;
+		const userFound = await User.findFirst({ where: { email: data.email } });
+		if (!userFound) {
+			console.log(data);
+			const surnames = data.given_name.split(" ");
+			const name = data.name as string;
+			const lastName = surnames[0] as string;
+			const secondLastName = surnames[1] ? surnames[1] : null;
+			const userName = data.name as string;
+			const email = data.email;
+			const image = data.picture;
 
-      const profileImg = await img_User.create({
-        data: {
-          image,
-        },
-      });
+			const profileImg = await img_User.create({
+				data: {
+					image,
+				},
+			});
 
-      await User.create({
-        data: {
-          name,
-          lastName,
-          secondLastName,
-          userName,
-          email,
-          isActive: true,
-          idProfile_img: profileImg.id,
-        },
-      });
-      console.log("Usuario creado correctamente");
-    } else {
-      console.log("El usuario ya existe");
-    }
-    const urlEncodedToken = encodeURIComponent(user.id_token as string);
-    res.redirect(
-      `http://localhost:5173/redirectRoute/?token=${urlEncodedToken}`
-    );
-  } catch (error: any) {
-    console.log(error.message);
-  }
+			await User.create({
+				data: {
+					name,
+					lastName,
+					secondLastName,
+					userName,
+					email,
+					isActive: true,
+					idProfile_img: profileImg.id,
+				},
+			});
+			console.log("Usuario creado correctamente");
+		} else {
+			console.log("El usuario ya existe");
+		}
+		const urlEncodedToken = encodeURIComponent(user.id_token as string);
+		res.redirect(
+			`http://localhost:5173/redirectRoute/?token=${urlEncodedToken}`
+		);
+	} catch (error: any) {
+		console.log(error.message);
+	}
 };
 
 export const verifyOTP = async (req: Request, res: Response) => {
-  const { otp } = req.body;
-  const { verify } = req.cookies;
-  if (!verify || !otp) {
-    return res.status(400).json(["No autorizado"]);
-  }
+	const { otp } = req.body;
+	const { verify } = req.cookies;
+	if (!verify || !otp) {
+		return res.status(400).json(["No autorizado"]);
+	}
 
-  jwt.verify(verify, SECRET_KEY as string, async (err: any, data: any) => {
-    if (err) {
-      return res.status(401).json(["No autorizado"]);
-    }
-    const userFound = await User.findUnique({ where: { id: data.id } });
-    if (!userFound) {
-      return res.status(401).json(["No autorizado"]);
-    }
-    const idOTP = await OTP.findUnique({
-      where: { id: userFound.idOTP as string },
-    });
+	jwt.verify(verify, SECRET_KEY as string, async (err: any, data: any) => {
+		if (err) {
+			return res.status(401).json(["No autorizado"]);
+		}
+		const userFound = await User.findUnique({ where: { id: data.id } });
+		if (!userFound) {
+			return res.status(401).json(["No autorizado"]);
+		}
+		const idOTP = await OTP.findUnique({
+			where: { id: userFound.idOTP as string },
+		});
 
-    if (verify != idOTP?.token) {
-      return res.status(401).json(["No autorizado"]);
-    }
+		if (verify != idOTP?.token) {
+			return res.status(401).json(["No autorizado"]);
+		}
 
-    if (idOTP?.otp != otp || idOTP?.otp != data.otp) {
-      console.log(`el otp es ${otp} y el userFound.otp es ${idOTP?.otp}`);
-      console.log("aca llega2");
-      return res.status(401).json(["No autorizado"]);
-    }
-    res.cookie("verify", "", {
-      expires: new Date(0),
-    });
+		if (idOTP?.otp != otp || idOTP?.otp != data.otp) {
+			console.log(`el otp es ${otp} y el userFound.otp es ${idOTP?.otp}`);
+			console.log("aca llega2");
+			return res.status(401).json(["No autorizado"]);
+		}
+		res.cookie("verify", "", {
+			expires: new Date(0),
+		});
 
-    const token = await createAccessToken({ id: userFound.id }, "1h");
-    res.cookie("token", token);
-    await User.update({ where: { id: data.id }, data: { isActive: true } });
+		const token = await createAccessToken({ id: userFound.id }, "1h");
+		res.cookie("token", token);
+		await User.update({ where: { id: data.id }, data: { isActive: true } });
 
-    const profileImg = await img_User.findUnique({
-      where: {
-        id: userFound.idProfile_img as string,
-      },
-    });
-    return res.json({
-      id: userFound.id,
-      name: userFound.name,
-      lastName: userFound.lastName,
-      secondLastName: userFound.secondLastName,
-      userName: userFound.userName,
-      email: userFound.email,
-      profileImg: profileImg?.image,
-      isAdmin: userFound.isAdmin,
-    });
-  });
-  return;
+		const profileImg = await img_User.findUnique({
+			where: {
+				id: userFound.idProfile_img as string,
+			},
+		});
+		return res.json({
+			id: userFound.id,
+			name: userFound.name,
+			lastName: userFound.lastName,
+			secondLastName: userFound.secondLastName,
+			userName: userFound.userName,
+			email: userFound.email,
+			profileImg: profileImg?.image,
+			isAdmin: userFound.isAdmin,
+		});
+	});
+	return;
 };
 
 export const verifyOTPMovil = async (req: Request, res: Response) => {
-  const { otp, verify } = req.body;
-  if (!verify || !otp) {
-    return res.status(400).json(["No autorizado"]);
-  }
+	const { otp, verify } = req.body;
+	if (!verify || !otp) {
+		return res.status(400).json(["No autorizado"]);
+	}
 
-  jwt.verify(verify, SECRET_KEY as string, async (err: any, data: any) => {
-    if (err) {
-      return res.status(401).json(["No autorizado"]);
-    }
-    const userFound = await User.findUnique({ where: { id: data.id } });
-    if (!userFound) {
-      return res.status(401).json(["No autorizado"]);
-    }
-    const idOTP = await OTP.findUnique({
-      where: { id: userFound.idOTP as string },
-    });
+	jwt.verify(verify, SECRET_KEY as string, async (err: any, data: any) => {
+		if (err) {
+			return res.status(401).json(["No autorizado"]);
+		}
+		const userFound = await User.findUnique({ where: { id: data.id } });
+		if (!userFound) {
+			return res.status(401).json(["No autorizado"]);
+		}
+		const idOTP = await OTP.findUnique({
+			where: { id: userFound.idOTP as string },
+		});
 
-    if (verify != idOTP?.token) {
-      return res.status(401).json(["No autorizado"]);
-    }
+		if (verify != idOTP?.token) {
+			return res.status(401).json(["No autorizado"]);
+		}
 
-    if (idOTP?.otp != otp || idOTP?.otp != data.otp) {
-      console.log(`el otp es ${otp} y el userFound.otp es ${idOTP?.otp}`);
-      console.log("aca llega2");
-      return res.status(401).json(["No autorizado"]);
-    }
+		if (idOTP?.otp != otp || idOTP?.otp != data.otp) {
+			console.log(`el otp es ${otp} y el userFound.otp es ${idOTP?.otp}`);
+			console.log("aca llega2");
+			return res.status(401).json(["No autorizado"]);
+		}
 
-    // const token = await createAccessToken({ id: userFound.id }, "1h");
-    await User.update({ where: { id: data.id }, data: { isActive: true } });
+		// const token = await createAccessToken({ id: userFound.id }, "1h");
+		await User.update({ where: { id: data.id }, data: { isActive: true } });
 
-    const profileImg = await img_User.findUnique({
-      where: {
-        id: userFound.idProfile_img as string,
-      },
-    });
-    return res.json({
-      id: userFound.id,
-      name: userFound.name,
-      lastName: userFound.lastName,
-      secondLastName: userFound.secondLastName,
-      userName: userFound.userName,
-      email: userFound.email,
-      profileImg: profileImg?.image,
-      isAdmin: userFound.isAdmin,
-    });
-  });
-  return;
+		const profileImg = await img_User.findUnique({
+			where: {
+				id: userFound.idProfile_img as string,
+			},
+		});
+		return res.json({
+			id: userFound.id,
+			name: userFound.name,
+			lastName: userFound.lastName,
+			secondLastName: userFound.secondLastName,
+			userName: userFound.userName,
+			email: userFound.email,
+			profileImg: profileImg?.image,
+			isAdmin: userFound.isAdmin,
+		});
+	});
+	return;
 };
 
 export const verifyIsActive = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
+	try {
+		const { id } = req.params;
 
-    const userFound = await User.findUnique({ where: { id } });
+		const userFound = await User.findUnique({ where: { id } });
 
-    if (userFound?.isActive) {
-      return res.status(200).json(true);
-    }
-    return res.status(200).json(false);
-  } catch (error) {
-    return res.status(500).json(["Error"]);
-  }
+		if (userFound?.isActive) {
+			return res.status(200).json(true);
+		}
+		return res.status(200).json(false);
+	} catch (error) {
+		return res.status(500).json(["Error"]);
+	}
 };
 
 export const changeEmail = async (req: Request, res: Response) => {
-  const { email } = req.body;
-  const { id } = req.params;
-  try {
-    const userFound = await User.findUnique({ where: { id } });
-    if (!userFound) {
-      return res.status(400).json(["No se encontro el usuario"]);
-    }
-    const emailFound = await User.findFirst({ where: { email } });
-    if (emailFound) {
-      return res.status(400).json(["El correo ya existe"]);
-    }
-    const userUpdated = await User.update({
-      where: {
-        id: userFound.id,
-      },
-      data: {
-        email,
-      },
-    });
-    const otp = Math.floor(Math.random() * (9999 - 1000) + 1000);
-    const token = await createAccessToken({ otp: otp, id: userUpdated.id });
+	const { email } = req.body;
+	const { id } = req.params;
+	try {
+		const userFound = await User.findUnique({ where: { id } });
+		if (!userFound) {
+			return res.status(400).json(["No se encontro el usuario"]);
+		}
+		const emailFound = await User.findFirst({ where: { email } });
+		if (emailFound) {
+			return res.status(400).json(["El correo ya existe"]);
+		}
+		const userUpdated = await User.update({
+			where: {
+				id: userFound.id,
+			},
+			data: {
+				email,
+			},
+		});
+		const otp = Math.floor(Math.random() * (9999 - 1000) + 1000);
+		const token = await createAccessToken({ otp: otp, id: userUpdated.id });
 
-    const otpUpdated = await OTP.update({
-      where: {
-        id: userFound.idOTP as string,
-      },
-      data: {
-        otp,
-        token: token as string,
-      },
-    });
-    const from = process.env.SENDER_EMAIL;
-    await transporter.sendMail({
-      from,
-      to: userUpdated.email,
-      subject: "Tripy - Verificación de correo",
-      text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-      html: `
+		const otpUpdated = await OTP.update({
+			where: {
+				id: userFound.idOTP as string,
+			},
+			data: {
+				otp,
+				token: token as string,
+			},
+		});
+		const from = process.env.SENDER_EMAIL;
+		await transporter.sendMail({
+			from,
+			to: userUpdated.email,
+			subject: "Tripy - Verificación de correo",
+			text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+			html: `
       <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
         <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
@@ -647,41 +647,41 @@ export const changeEmail = async (req: Request, res: Response) => {
 
       </body>
       `,
-    });
-    res.cookie("verify", token);
-    return res.sendStatus(200);
-  } catch (error: any) {
-    console.log(error);
-    return res.status(500).json([error.message]);
-  }
+		});
+		res.cookie("verify", token);
+		return res.sendStatus(200);
+	} catch (error: any) {
+		console.log(error);
+		return res.status(500).json([error.message]);
+	}
 };
 
 export const resendOTP = async (req: Request, res: Response) => {
-  const { email } = req.body;
-  try {
-    const userFound = await User.findFirst({ where: { email } });
-    if (!userFound) {
-      return res.status(400).json(["No se encontro el usuario"]);
-    }
-    const otp = Math.floor(Math.random() * (9999 - 1000) + 1000);
-    const token = await createAccessToken({ otp: otp, id: userFound.id });
+	const { email } = req.body;
+	try {
+		const userFound = await User.findFirst({ where: { email } });
+		if (!userFound) {
+			return res.status(400).json(["No se encontro el usuario"]);
+		}
+		const otp = Math.floor(Math.random() * (9999 - 1000) + 1000);
+		const token = await createAccessToken({ otp: otp, id: userFound.id });
 
-    const otpUpdated = await OTP.update({
-      where: {
-        id: userFound.idOTP as string,
-      },
-      data: {
-        otp,
-        token: token as string,
-      },
-    });
-    const from = process.env.SENDER_EMAIL;
-    await transporter.sendMail({
-      from,
-      to: userFound.email,
-      subject: "Tripy - Verificación de correo",
-      text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-      html: `
+		const otpUpdated = await OTP.update({
+			where: {
+				id: userFound.idOTP as string,
+			},
+			data: {
+				otp,
+				token: token as string,
+			},
+		});
+		const from = process.env.SENDER_EMAIL;
+		await transporter.sendMail({
+			from,
+			to: userFound.email,
+			subject: "Tripy - Verificación de correo",
+			text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+			html: `
       <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
         <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
@@ -702,11 +702,11 @@ export const resendOTP = async (req: Request, res: Response) => {
 
       </body>
       `,
-    });
-    res.cookie("verify", token);
-    return res.sendStatus(200);
-  } catch (error: any) {
-    console.log(error);
-    return res.status(500).json([error.message]);
-  }
+		});
+		res.cookie("verify", token);
+		return res.sendStatus(200);
+	} catch (error: any) {
+		console.log(error);
+		return res.status(500).json([error.message]);
+	}
 };

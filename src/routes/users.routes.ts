@@ -1,17 +1,17 @@
 import { Router } from "express";
 import multer from "multer";
 import {
-  getUsersByRequest,
-  registerNewCommentary,
-  getComentariesByID,
-  getContacts,
-  registerNewMessage,
-  getMessages,
-  getComentsAndTravelsInactive,
-  acceptRequest,
-  declineRequest,
-  getAccountRequest,
-  identitySender,
+	getUsersByRequest,
+	registerNewCommentary,
+	getComentariesByID,
+	getContacts,
+	registerNewMessage,
+	getMessages,
+	getComentsAndTravelsInactive,
+	acceptRequest,
+	declineRequest,
+	getAccountRequest,
+	identitySender,
 } from "../controllers/users.controller";
 
 import { userCommentarySchema } from "../schemas/userCommentary.schema";
@@ -21,19 +21,19 @@ const router = Router();
 
 const storage = multer.memoryStorage();
 const upload = multer({
-  storage,
-  limits: {
-    fileSize: 1024 * 1024,
-    files: 3,
-  },
+	storage,
+	limits: {
+		fileSize: 1024 * 1024,
+		files: 3,
+	},
 });
 
 router.get("/user/request/:id", getUsersByRequest);
 
 router.post(
-  "/user/commentary",
-  validateSchema(userCommentarySchema),
-  registerNewCommentary
+	"/user/commentary",
+	validateSchema(userCommentarySchema),
+	registerNewCommentary
 );
 
 router.get("/user/commentary/all-commentaries/:id", getComentariesByID);
@@ -47,13 +47,13 @@ router.post("/user/get/messages", getMessages);
 router.get("/user/coments/travels/:id", getComentsAndTravelsInactive);
 
 router.post(
-  "/user/send/data",
-  upload.fields([
-    { name: "image1", maxCount: 1 },
-    { name: "image2", maxCount: 1 },
-    { name: "image3", maxCount: 1 },
-  ]),
-  identitySender
+	"/user/send/data",
+	upload.fields([
+		{ name: "image1", maxCount: 1 },
+		{ name: "image2", maxCount: 1 },
+		{ name: "image3", maxCount: 1 },
+	]),
+	identitySender
 );
 
 router.get("/admin/get/requests", getAccountRequest);
