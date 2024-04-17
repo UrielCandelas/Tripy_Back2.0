@@ -321,7 +321,7 @@ export const verifyTokenMovil = async (req: Request, res: Response) => {
       isAdmin: userFound.isAdmin,
     });
   });
-  return res.sendStatus(200);
+  return;
 };
 
 export const editUserAcount = async (req: Request, res: Response) => {
