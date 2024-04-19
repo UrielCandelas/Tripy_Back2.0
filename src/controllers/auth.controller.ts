@@ -292,37 +292,38 @@ export const verifyToken = async (req: Request, res: Response) => {
 };
 
 export const verifyTokenMovil = async (req: Request, res: Response) => {
-  const { token } = req.body;
-  if (!token) {
-    return res.status(401).json(["No autorizado"]);
-  }
-  const key = SECRET_KEY != undefined ? SECRET_KEY : "secret";
+	const { token } = req.body;
+	if (!token) {
+		return res.status(401).json(["No autorizado"]);
+	}
+	const key = SECRET_KEY != undefined ? SECRET_KEY : "secret";
 
-  jwt.verify(token, key, async (err: any, user: any) => {
-    if (err) {
-      return res.status(401).json(["No autorizado"]);
-    }
-    const userFound = await User.findUnique({ where: { id: user.id } });
-    if (!userFound) {
-      return res.status(404).json(["No autorizado"]);
-    }
-    const profileImg = await img_User.findUnique({
-      where: {
-        id: userFound.idProfile_img as string,
-      },
-    });
-    return res.json({
-      id: userFound.id,
-      name: userFound.name,
-      lastName: userFound.lastName,
-      secondLastName: userFound.secondLastName,
-      userName: userFound.userName,
-      email: userFound.email,
-      profileImg: profileImg?.image,
-      isAdmin: userFound.isAdmin,
-    });
-  });
-  return res.sendStatus(200);
+	jwt.verify(token, key, async (err: any, user: any) => {
+		if (err) {
+			return res.status(401).json(["No autorizado"]);
+		}
+		const userFound = await User.findUnique({ where: { id: user.id } });
+		if (!userFound) {
+			return res.status(404).json(["No autorizado"]);
+		}
+		const profileImg = await img_User.findUnique({
+			where: {
+				id: userFound.idProfile_img as string,
+			},
+		});
+		return res.json({
+			id: userFound.id,
+			name: userFound.name,
+			lastName: userFound.lastName,
+			secondLastName: userFound.secondLastName,
+			userName: userFound.userName,
+			email: userFound.email,
+			profileImg: profileImg?.image,
+			isAdmin: userFound.isAdmin,
+			token: token,
+		});
+	});
+	return;
 };
 
 export const editUserAcount = async (req: Request, res: Response) => {
