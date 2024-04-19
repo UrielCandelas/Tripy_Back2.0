@@ -319,9 +319,10 @@ export const verifyTokenMovil = async (req: Request, res: Response) => {
 			email: userFound.email,
 			profileImg: profileImg?.image,
 			isAdmin: userFound.isAdmin,
+			token: token,
 		});
 	});
-	return res.sendStatus(200);
+	return;
 };
 
 export const editUserAcount = async (req: Request, res: Response) => {
