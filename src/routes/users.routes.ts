@@ -12,6 +12,7 @@ import {
 	declineRequest,
 	getAccountRequest,
 	identitySender,
+	blobSender,
 } from "../controllers/users.controller";
 
 import { userCommentarySchema } from "../schemas/userCommentary.schema";
@@ -61,5 +62,7 @@ router.get("/admin/get/requests", getAccountRequest);
 router.put("/admin/accept/requests/:id", acceptRequest);
 
 router.put("/admin/decline/requests/:id", declineRequest);
+
+router.post("/user/send/blob", blobSender);
 
 export default router;
