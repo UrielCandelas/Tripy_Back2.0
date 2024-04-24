@@ -23,7 +23,7 @@ const io = new Server(httpServer, {
 const origins = ["http://localhost:5173", "http://localhost:8080"];
 
 app.use(express.json());
-/*app.use(
+app.use(
 	cors({
 		origin(requestOrigin, callback) {
 			if (!requestOrigin || origins.includes(requestOrigin)) {
@@ -34,7 +34,7 @@ app.use(express.json());
 		},
 		credentials: true,
 	})
-);*/
+);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 app.use(cookieParser());
