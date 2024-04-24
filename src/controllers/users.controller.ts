@@ -584,3 +584,79 @@ export const declineRequest = async (req: Request, res: Response) => {
 		return res.status(500).json([error.message]);
 	}
 };
+
+export const blobSender = async (req: Request, res: Response) => {
+	const { id, file1, file2, file3 } = req.body;
+	console.log(req.body);
+	if (!id) {
+		return res.status(400).json(["no hay ningun id"]);
+	}
+	try {
+		const response_img1: UploadApiResponse | undefined = await new Promise(
+			(resolve, reject) => {
+				cloudinary.uploader
+					.upload_stream({}, (error, result) => {
+						if (error) {
+							reject(error);
+						}
+						resolve(result);
+					})
+					.end(file1);
+			}
+		);
+		const response_img2: UploadApiResponse | undefined = await new Promise(
+			(resolve, reject) => {
+				cloudinary.uploader
+					.upload_stream({}, (error, result) => {
+						if (error) {
+							reject(error);
+						}
+						resolve(result);
+					})
+					.end(file2);
+			}
+		);
+		const response_img3: UploadApiResponse | undefined = await new Promise(
+			(resolve, reject) => {
+				cloudinary.uploader
+					.upload_stream({}, (error, result) => {
+						if (error) {
+							reject(error);
+						}
+						resolve(result);
+					})
+					.end(file3);
+			}
+		);
+		const newImage1 = await img_Documents.create({
+			data: {
+				image: response_img1?.secure_url as string,
+			},
+		});
+
+		const newImage2 = await img_Documents.create({
+			data: {
+				image: response_img2?.secure_url as string,
+			},
+		});
+
+		const newImage3 = await img_Documents.create({
+			data: {
+				image: response_img3?.secure_url as string,
+			},
+		});
+
+		const newRequest = await UserRequests.create({
+			data: {
+				idUser: id,
+				idIDImageFront: newImage1.id,
+				idIDImageBack: newImage2.id,
+				idUserImage: newImage3.id,
+			},
+		});
+		return res.status(200).json(newRequest);
+	} catch (error: any) {
+		console.log(error);
+		return res.status(500).json([error.message]);
+	}
+};
