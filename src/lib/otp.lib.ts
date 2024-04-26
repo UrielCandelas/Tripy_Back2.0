@@ -6,10 +6,13 @@ const pass = process.env.SENDER_PASSWORD;
 const transporter = nodemailer.createTransport({
 	host: "smtp.office365.com",
 	port: 587,
-	secure: false,
+	secure: true,
 	auth: {
 		user,
 		pass,
+	},
+	tls: {
+		ciphers: "SSLv3",
 	},
 });
 
