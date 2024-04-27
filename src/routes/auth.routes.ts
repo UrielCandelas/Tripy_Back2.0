@@ -48,7 +48,7 @@ router.post("/auth/otp", verifyOTP);
 
 router.post("/auth/otp/movil", verifyOTPMovil);
 
-router.get("/auth/active/:id", verifyIsActive);
+router.get("/auth/active", verifyIsActive);
 
 router.put("/email/change/:id", changeEmail);
 
