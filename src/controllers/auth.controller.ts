@@ -5,7 +5,6 @@ import { Request, Response } from "express";
 import { PrismaClient, Users } from "@prisma/client";
 import { getUserData, verifyGoogleToken } from "../lib/google.lib";
 import { OAuth2Client } from "google-auth-library";
-import transporter from "../lib/otp.lib";
 import mailgun from "../lib/mailgun.lib";
 import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
 import Mailgun from "mailgun-js";
@@ -105,7 +104,7 @@ export const register = async (req: Request, res: Response) => {
 				message: "El administrador se ha registrado exitosamente",
 			});
 		}
-		const response = await new Promise((resolve, reject) => {
+		await new Promise((resolve, reject) => {
 			mailgun.messages().send(
 				{
 					from,
@@ -140,7 +139,6 @@ export const register = async (req: Request, res: Response) => {
 				}
 			);
 		});
-		console.log(response);
 
 		res.cookie("verify", token);
 		return res.status(200).json({
@@ -666,12 +664,14 @@ export const changeEmail = async (req: Request, res: Response) => {
 			},
 		});
 		const from = process.env.SENDER_EMAIL;
-		await transporter.sendMail({
-			from,
-			to: userUpdated.email,
-			subject: "Tripy - Verificación de correo",
-			text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-			html: `
+		await new Promise((resolve, reject) => {
+			mailgun.messages().send(
+				{
+					from,
+					to: userFound.email,
+					subject: "Tripy - Verificación de correo",
+					text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+					html: `
       <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
         <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
@@ -692,6 +692,14 @@ export const changeEmail = async (req: Request, res: Response) => {
 
       </body>
       `,
+				},
+				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(body);
+				}
+			);
 		});
 		res.cookie("verify", token);
 		return res.sendStatus(200);
@@ -721,12 +729,14 @@ export const resendOTP = async (req: Request, res: Response) => {
 			},
 		});
 		const from = process.env.SENDER_EMAIL;
-		await transporter.sendMail({
-			from,
-			to: userFound.email,
-			subject: "Tripy - Verificación de correo",
-			text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-			html: `
+		await new Promise((resolve, reject) => {
+			mailgun.messages().send(
+				{
+					from,
+					to: userFound.email,
+					subject: "Tripy - Verificación de correo",
+					text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+					html: `
       <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
         <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
@@ -747,7 +757,16 @@ export const resendOTP = async (req: Request, res: Response) => {
 
       </body>
       `,
+				},
+				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(body);
+				}
+			);
 		});
+
 		res.cookie("verify", token);
 		return res.sendStatus(200);
 	} catch (error: any) {
