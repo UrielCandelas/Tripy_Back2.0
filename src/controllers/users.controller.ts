@@ -2,7 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import { getOneUser, getLocation, getExtras } from "../lib/travels.lib";
 import { Contact } from "../../types";
-import transporter from "../lib/otp.lib";
+import mailgun from "../lib/mailgun.lib";
+import Mailgun from "mailgun-js";
 import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({
@@ -213,19 +214,19 @@ export const getComentsAndTravelsInactive = async (
 	req: Request,
 	res: Response
 ) => {
-	const { id } = req.params;
+	const { id_owner, id_me } = req.body;
 	const cardU1 = [];
 	const cardU2 = [];
 	const reviews = [];
 	try {
-		const user = await getOneUser(id);
+		const user = await getOneUser(id_owner);
 		const image = await img_Users.findUnique({
 			where: {
 				id: user?.idProfile_img as string,
 			},
 		});
 		const commentariesFound = await Commentary.findMany({
-			where: { id_userComented: id },
+			where: { id_userComented: id_owner },
 		});
 		if (commentariesFound.length > 0) {
 			for (let index = 0; index < commentariesFound.length; index++) {
@@ -247,13 +248,14 @@ export const getComentsAndTravelsInactive = async (
 		}
 		const travelsFoundUser1 = await Travel.findMany({
 			where: {
-				id_user1: id,
+				id_user1: id_owner,
+				id_user2: { not: null },
 				isActive: false,
 			},
 		});
 		const travelsFoundUser2 = await Travel.findMany({
 			where: {
-				id_user2: id,
+				id_user2: id_owner,
 				isActive: false,
 			},
 		});
@@ -306,8 +308,8 @@ export const getComentsAndTravelsInactive = async (
 			if (travelsFoundUser2[index]) {
 				const expensesFound = await Expenses.findMany({
 					where: {
-						id_user2: travelsFoundUser1[index].id_user2,
-						id_travel: travelsFoundUser1[index].id,
+						id_user2: travelsFoundUser2[index].id_user2,
+						id_travel: travelsFoundUser2[index].id,
 					},
 				});
 				let totalexpenses = 0;
@@ -327,7 +329,7 @@ export const getComentsAndTravelsInactive = async (
 					travelsFoundUser2[index].id_extras as string
 				);
 				const userForTravel = await getOneUser(
-					travelsFoundUser1[index].id_user1
+					travelsFoundUser2[index].id_user1
 				);
 				const data = {
 					travel: travelsFoundUser2[index],
@@ -343,12 +345,20 @@ export const getComentsAndTravelsInactive = async (
 			}
 		}
 
+		const isSharedTravelOwner = travelsFoundUser1.some((travel) => {
+			return travel.id_user2 == id_me;
+		});
+		const isSharedTravelCompanion = travelsFoundUser1.some((travel) => {
+			return travel.id_user1 == id_me;
+		});
+
 		const data = {
 			reviews,
 			myTravels: cardU1,
 			sharedTravels: cardU2,
 			user,
 			image: image?.image,
+			isSharedTravel: isSharedTravelOwner || isSharedTravelCompanion,
 		};
 		return res.status(200).json(data);
 	} catch (error: any) {
@@ -510,12 +520,14 @@ export const acceptRequest = async (req: Request, res: Response) => {
 			},
 		});
 		const from = process.env.SENDER_EMAIL;
-		await transporter.sendMail({
-			from,
-			to: userVerified.email,
-			subject: "Tripy - Identidad verificada",
-			text: `Tu identidad ha sido verificada, gracias por usar Tripy`,
-			html: `
+		await new Promise((resolve, reject) => {
+			mailgun.messages().send(
+				{
+					from,
+					to: userVerified.email,
+					subject: "Tripy - Identidad verificada",
+					text: `Tu identidad ha sido verificada, gracias por usar Tripy`,
+					html: `
       <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
         <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
@@ -525,7 +537,16 @@ export const acceptRequest = async (req: Request, res: Response) => {
         <h3 style="color: #333; margin-bottom: 20px;">Tu cuenta ha sido verificada y aceptada, sientete libre de usar Tripy</h3>
       </body>
       `,
+				},
+				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(body);
+				}
+			);
 		});
+
 		return res.sendStatus(200);
 	} catch (error: any) {
 		return res.status(500).json([error.message]);
@@ -562,12 +583,14 @@ export const declineRequest = async (req: Request, res: Response) => {
 			},
 		});
 		const from = process.env.SENDER_EMAIL;
-		await transporter.sendMail({
-			from,
-			to: userData?.email,
-			subject: "Tripy - Solicitud Rechazada",
-			text: `Lamentablemente tu solicitud ha sido rechazada debido a: ${reason}, los datos que enviaste se eliminaran de nuestros registros`,
-			html: `
+		await new Promise((resolve, reject) => {
+			mailgun.messages().send(
+				{
+					from,
+					to: userData?.email as string,
+					subject: "Tripy - Solicitud Rechazada",
+					text: `Lamentablemente tu solicitud ha sido rechazada debido a: ${reason}, los datos que enviaste se eliminaran de nuestros registros`,
+					html: `
       <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
         <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
@@ -577,7 +600,16 @@ export const declineRequest = async (req: Request, res: Response) => {
         <h3 style="color: #333; margin-bottom: 20px;">Lamentablemente tu solicitud ha sido rechazada debido a: ${reason}, los datos que enviaste se eliminaran de nuestros registros, en caso de querer volver a usar Tripy, vuelve a realizar un registro pero con tus datos ya correjidos</h3>
       </body>
       `,
+				},
+				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(body);
+				}
+			);
 		});
+
 		return res.sendStatus(200);
 	} catch (error: any) {
 		console.log(error);
@@ -592,57 +624,21 @@ export const blobSender = async (req: Request, res: Response) => {
 		return res.status(400).json(["no hay ningun id"]);
 	}
 	try {
-		const response_img1: UploadApiResponse | undefined = await new Promise(
-			(resolve, reject) => {
-				cloudinary.uploader
-					.upload_stream({}, (error, result) => {
-						if (error) {
-							reject(error);
-						}
-						resolve(result);
-					})
-					.end(file1);
-			}
-		);
-		const response_img2: UploadApiResponse | undefined = await new Promise(
-			(resolve, reject) => {
-				cloudinary.uploader
-					.upload_stream({}, (error, result) => {
-						if (error) {
-							reject(error);
-						}
-						resolve(result);
-					})
-					.end(file2);
-			}
-		);
-		const response_img3: UploadApiResponse | undefined = await new Promise(
-			(resolve, reject) => {
-				cloudinary.uploader
-					.upload_stream({}, (error, result) => {
-						if (error) {
-							reject(error);
-						}
-						resolve(result);
-					})
-					.end(file3);
-			}
-		);
 		const newImage1 = await img_Documents.create({
 			data: {
-				image: response_img1?.secure_url as string,
+				image: file1,
 			},
 		});
 
 		const newImage2 = await img_Documents.create({
 			data: {
-				image: response_img2?.secure_url as string,
+				image: file2,
 			},
 		});
 
 		const newImage3 = await img_Documents.create({
 			data: {
-				image: response_img3?.secure_url as string,
+				image: file3,
 			},
 		});
 
