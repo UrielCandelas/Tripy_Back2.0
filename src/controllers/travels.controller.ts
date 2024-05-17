@@ -367,6 +367,7 @@ export const getTravelsA = async (req: Request, res: Response) => {
 		const travelsFoundInactive = await Travel.findMany({
 			where: {
 				id_user1: id,
+				id_user2: null,
 				isActive: true,
 			},
 		});

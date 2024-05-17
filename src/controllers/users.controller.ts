@@ -214,19 +214,19 @@ export const getComentsAndTravelsInactive = async (
 	req: Request,
 	res: Response
 ) => {
-	const { id } = req.params;
+	const { id_owner, id_me } = req.body;
 	const cardU1 = [];
 	const cardU2 = [];
 	const reviews = [];
 	try {
-		const user = await getOneUser(id);
+		const user = await getOneUser(id_owner);
 		const image = await img_Users.findUnique({
 			where: {
 				id: user?.idProfile_img as string,
 			},
 		});
 		const commentariesFound = await Commentary.findMany({
-			where: { id_userComented: id },
+			where: { id_userComented: id_owner },
 		});
 		if (commentariesFound.length > 0) {
 			for (let index = 0; index < commentariesFound.length; index++) {
@@ -248,13 +248,14 @@ export const getComentsAndTravelsInactive = async (
 		}
 		const travelsFoundUser1 = await Travel.findMany({
 			where: {
-				id_user1: id,
+				id_user1: id_owner,
+				id_user2: { not: null },
 				isActive: false,
 			},
 		});
 		const travelsFoundUser2 = await Travel.findMany({
 			where: {
-				id_user2: id,
+				id_user2: id_owner,
 				isActive: false,
 			},
 		});
@@ -307,8 +308,8 @@ export const getComentsAndTravelsInactive = async (
 			if (travelsFoundUser2[index]) {
 				const expensesFound = await Expenses.findMany({
 					where: {
-						id_user2: travelsFoundUser1[index].id_user2,
-						id_travel: travelsFoundUser1[index].id,
+						id_user2: travelsFoundUser2[index].id_user2,
+						id_travel: travelsFoundUser2[index].id,
 					},
 				});
 				let totalexpenses = 0;
@@ -328,7 +329,7 @@ export const getComentsAndTravelsInactive = async (
 					travelsFoundUser2[index].id_extras as string
 				);
 				const userForTravel = await getOneUser(
-					travelsFoundUser1[index].id_user1
+					travelsFoundUser2[index].id_user1
 				);
 				const data = {
 					travel: travelsFoundUser2[index],
@@ -344,12 +345,20 @@ export const getComentsAndTravelsInactive = async (
 			}
 		}
 
+		const isSharedTravelOwner = travelsFoundUser1.some((travel) => {
+			return travel.id_user2 == id_me;
+		});
+		const isSharedTravelCompanion = travelsFoundUser1.some((travel) => {
+			return travel.id_user1 == id_me;
+		});
+
 		const data = {
 			reviews,
 			myTravels: cardU1,
 			sharedTravels: cardU2,
 			user,
 			image: image?.image,
+			isSharedTravel: isSharedTravelOwner || isSharedTravelCompanion,
 		};
 		return res.status(200).json(data);
 	} catch (error: any) {
