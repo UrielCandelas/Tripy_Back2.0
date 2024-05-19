@@ -702,7 +702,15 @@ export const changeEmail = async (req: Request, res: Response) => {
 			);
 		});
 		res.cookie("verify", token);
-		return res.sendStatus(200);
+		return res.status(200).json({
+			id: userUpdated.id,
+			name: userUpdated.name,
+			lastName: userUpdated.lastName,
+			secondLastName: userUpdated.secondLastName,
+			userName: userUpdated.userName,
+			email: userUpdated.email,
+			isAdmin: userUpdated.isAdmin,
+		});
 	} catch (error: any) {
 		console.log(error);
 		return res.status(500).json([error.message]);
