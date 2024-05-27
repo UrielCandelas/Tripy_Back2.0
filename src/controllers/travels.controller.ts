@@ -627,6 +627,16 @@ export const getTravelsAndUsers = async (req: Request, res: Response) => {
 export const registerComentTr = async (req: Request, res: Response) => {
 	const { idUser, idLocation, uComent } = req.body;
 	try {
+		const isComment = await Coments.findMany({
+			where: {
+				id_location: idLocation,
+				id_user: idUser,
+			}
+		})
+
+		if (isComment.length === 3) {
+			return res.status(400).json(["Ya has comentado este lugar muchas veces"]);
+		}
 		const newComent = await Coments.create({
 			data: {
 				id_location: idLocation,
