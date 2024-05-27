@@ -347,6 +347,9 @@ export const getTravelsA = async (req: Request, res: Response) => {
 	const extras2 = [];
 	const usersU1 = [];
 	const usersU2 = [];
+	const expensesI = [];
+	const locationsI = [];
+	const extrasI = [];
 	try {
 		const travelsFoundUser1 = await Travel.findMany({
 			where: {
@@ -361,7 +364,14 @@ export const getTravelsA = async (req: Request, res: Response) => {
 				isActive: true,
 			},
 		});
-		if (!travelsFoundUser1 && !travelsFoundUser2) {
+		const travelsFoundInactive = await Travel.findMany({
+			where: {
+				id_user1: id,
+				id_user2: null,
+				isActive: true,
+			},
+		});
+		if (!travelsFoundUser1 && !travelsFoundUser2 && !travelsFoundInactive) {
 			return res.status(200).json(["No hay viajes"]);
 		}
 		for (let index = 0; index < travelsFoundUser1.length; index++) {
@@ -434,6 +444,35 @@ export const getTravelsA = async (req: Request, res: Response) => {
 				}
 			}
 		}
+		for (let index = 0; index < travelsFoundInactive.length; index++) {
+			if (travelsFoundInactive[index]) {
+				const expensesFound = await Expenses.findMany({
+					where: {
+						id_travel: travelsFoundInactive[index].id,
+					},
+				});
+				let totalExpenses = 0;
+				for (let index = 0; index < expensesFound.length; index++) {
+					const data = expensesFound[index].quantity;
+					totalExpenses += data.toNumber();
+				}
+				const obj = {
+					totalExpenses: totalExpenses,
+					expenses: expensesFound,
+				};
+				expensesI.push(obj);
+				const locationFound = await getLocation(
+					travelsFoundInactive[index].id_location
+				);
+				locationsI.push(locationFound);
+				const extrasFound = await getExtras(
+					travelsFoundInactive[index].id_extras as string
+				);
+				if (extrasFound) {
+					extrasI.push(extrasFound);
+				}
+			}
+		}
 		const data = {
 			travels: travelsFoundUser1,
 			usersU1: usersU1,
@@ -445,6 +484,10 @@ export const getTravelsA = async (req: Request, res: Response) => {
 			expenses_user2: expenses2,
 			usersU2: usersU2,
 			extras_user2: extras2,
+			travelsInactive: travelsFoundInactive,
+			expenses_inactive: expensesI,
+			locations_inactive: locationsI,
+			extras_inactive: extrasI,
 		};
 		return res.status(200).json(data);
 	} catch (error: any) {

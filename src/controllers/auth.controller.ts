@@ -5,9 +5,9 @@ import { Request, Response } from "express";
 import { PrismaClient, Users } from "@prisma/client";
 import { getUserData, verifyGoogleToken } from "../lib/google.lib";
 import { OAuth2Client } from "google-auth-library";
-import transporter from "../lib/otp.lib";
 import mailgun from "../lib/mailgun.lib";
 import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
+import Mailgun from "mailgun-js";
 
 cloudinary.config({
 	cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -75,7 +75,10 @@ export const register = async (req: Request, res: Response) => {
 				idProfile_img: newProfileImg.id,
 			},
 		});
-		const token = await createAccessToken({ otp: newOTP.otp, id: newUser.id });
+		const token = await createAccessToken(
+			{ otp: newOTP.otp, id: newUser.id },
+			"1w"
+		);
 
 		const otpUpdated = await OTP.update({
 			where: {
@@ -101,67 +104,42 @@ export const register = async (req: Request, res: Response) => {
 				message: "El administrador se ha registrado exitosamente",
 			});
 		}
-		mailgun.messages().send(
-			{
-				from,
-				to: newUser.email,
-				subject: "Tripy - Verificación de correo",
-				text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-				html: `<body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
-
-			<h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
-
-			<h2 style="color: #333; margin-bottom: 20px;">Este es tu codigo de verificación:</h2>
-
-			<div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block;">
-				<p style="color: #555; font-size: 18px; margin-bottom: 40px; font-weight: bold; color: #007bff;">${otpUpdated.otp}</p>
-			</div>
-
-			<div style="color: black; margin-top: 15px;">
-				<p>Ingresa este codigo de verificacion en la pagina de tripy para finalizar tu registro</p>
-			</div>
-
-			<footer style="color: #888; margin-top: 20px;">
-				<p>Por favor, no compartas este código con nadie. Si no realizaste esta acción, por favor, contacta con nosotros.</p>
-			</footer>
-
-		</body>`,
-			},
-			(err, body) => {
-				if (err) {
-					console.error(err);
-					return;
+		await new Promise((resolve, reject) => {
+			mailgun.messages().send(
+				{
+					from,
+					to: newUser.email,
+					subject: "Tripy - Verificación de correo",
+					text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+					html: `<body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+	
+				<h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+	
+				<h2 style="color: #333; margin-bottom: 20px;">Este es tu codigo de verificación:</h2>
+	
+				<div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block;">
+					<p style="color: #555; font-size: 18px; margin-bottom: 40px; font-weight: bold; color: #007bff;">${otpUpdated.otp}</p>
+				</div>
+	
+				<div style="color: black; margin-top: 15px;">
+					<p>Ingresa este codigo de verificacion en la pagina de tripy para finalizar tu registro</p>
+				</div>
+	
+				<footer style="color: #888; margin-top: 20px;">
+					<p>Por favor, no compartas este código con nadie. Si no realizaste esta acción, por favor, contacta con nosotros.</p>
+				</footer>
+	
+			</body>`,
+				},
+				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(body);
 				}
-				console.log(body);
-			}
-		);
-		/*await transporter.sendMail({
-			from,
-			to: newUser.email,
-			subject: "Tripy - Verificación de correo",
-			text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-			html: `
-      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+			);
+		});
 
-        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
-
-        <h2 style="color: #333; margin-bottom: 20px;">Este es tu codigo de verificación:</h2>
-
-        <div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block;">
-          <p style="color: #555; font-size: 18px; margin-bottom: 40px; font-weight: bold; color: #007bff;">${otpUpdated.otp}</p>
-        </div>
-
-        <div style="color: black; margin-top: 15px;">
-          <p>Ingresa este codigo de verificacion en la pagina de tripy para finalizar tu registro</p>
-        </div>
-
-        <footer style="color: #888; margin-top: 20px;">
-          <p>Por favor, no compartas este código con nadie. Si no realizaste esta acción, por favor, contacta con nosotros.</p>
-        </footer>
-
-      </body>
-      `,
-		});*/
 		res.cookie("verify", token);
 		return res.status(200).json({
 			id: newUser.id,
@@ -217,7 +195,7 @@ export const login = async (req: Request, res: Response) => {
 			},
 		});
 
-		const token = await createAccessToken({ id: userFound.id }, "1h");
+		const token = await createAccessToken({ id: userFound.id }, "1w");
 		res.cookie("token", token);
 		return res.json({
 			id: userFound.id,
@@ -508,7 +486,6 @@ export const googleAuth = async (req: Request, res: Response) => {
 export const verifyOTP = async (req: Request, res: Response) => {
 	const { otp } = req.body;
 	const { verify } = req.cookies;
-	console.log(otp);
 	if (!verify || !otp) {
 		return res.status(400).json(["No autorizado"]);
 	}
@@ -614,16 +591,43 @@ export const verifyOTPMovil = async (req: Request, res: Response) => {
 
 export const verifyIsActive = async (req: Request, res: Response) => {
 	try {
-		const { id } = req.params;
-
-		const userFound = await User.findUnique({ where: { id } });
-
-		if (userFound?.isActive) {
-			return res.status(200).json(true);
+		const { verify } = req.cookies;
+		const token = verify;
+		if (!token) {
+			return res.status(401).json({ message: "No autorizado" });
 		}
-		return res.status(200).json(false);
+
+		const key = SECRET_KEY != undefined ? SECRET_KEY : "secret";
+		jwt.verify(token, key, async (err: any, user: any) => {
+			if (err) {
+				return res.status(401).json({ message: "No autorizado" });
+			}
+			const userFound = await User.findFirst({
+				where: { id: user?.id },
+			});
+			if (!userFound) {
+				return res.status(401).json({ message: "No autorizado" });
+			}
+			const profileImg = await img_User.findUnique({
+				where: {
+					id: userFound.idProfile_img as string,
+				},
+			});
+			return res.json({
+				id: userFound.id,
+				name: userFound.name,
+				lastName: userFound.lastName,
+				secondLastName: userFound.secondLastName,
+				userName: userFound.userName,
+				email: userFound.email,
+				profileImg: profileImg?.image,
+				isAdmin: userFound.isAdmin,
+			});
+		});
+		return;
 	} catch (error) {
-		return res.status(500).json(["Error"]);
+		console.log(error);
+		return res.status(500).json(["Error al verificar el token"]);
 	}
 };
 
@@ -660,12 +664,14 @@ export const changeEmail = async (req: Request, res: Response) => {
 			},
 		});
 		const from = process.env.SENDER_EMAIL;
-		await transporter.sendMail({
-			from,
-			to: userUpdated.email,
-			subject: "Tripy - Verificación de correo",
-			text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-			html: `
+		await new Promise((resolve, reject) => {
+			mailgun.messages().send(
+				{
+					from,
+					to: userFound.email,
+					subject: "Tripy - Verificación de correo",
+					text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+					html: `
       <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
         <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
@@ -686,9 +692,25 @@ export const changeEmail = async (req: Request, res: Response) => {
 
       </body>
       `,
+				},
+				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(body);
+				}
+			);
 		});
 		res.cookie("verify", token);
-		return res.sendStatus(200);
+		return res.status(200).json({
+			id: userUpdated.id,
+			name: userUpdated.name,
+			lastName: userUpdated.lastName,
+			secondLastName: userUpdated.secondLastName,
+			userName: userUpdated.userName,
+			email: userUpdated.email,
+			isAdmin: userUpdated.isAdmin,
+		});
 	} catch (error: any) {
 		console.log(error);
 		return res.status(500).json([error.message]);
@@ -715,12 +737,14 @@ export const resendOTP = async (req: Request, res: Response) => {
 			},
 		});
 		const from = process.env.SENDER_EMAIL;
-		await transporter.sendMail({
-			from,
-			to: userFound.email,
-			subject: "Tripy - Verificación de correo",
-			text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-			html: `
+		await new Promise((resolve, reject) => {
+			mailgun.messages().send(
+				{
+					from,
+					to: userFound.email,
+					subject: "Tripy - Verificación de correo",
+					text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+					html: `
       <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
         <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
@@ -741,7 +765,16 @@ export const resendOTP = async (req: Request, res: Response) => {
 
       </body>
       `,
+				},
+				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(body);
+				}
+			);
 		});
+
 		res.cookie("verify", token);
 		return res.sendStatus(200);
 	} catch (error: any) {

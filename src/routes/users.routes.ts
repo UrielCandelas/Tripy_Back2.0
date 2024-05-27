@@ -43,9 +43,9 @@ router.get("/user/contacts/:id", getContacts);
 
 router.post("/user/message", registerNewMessage);
 
-router.post("/user/get/messages", getMessages);
+router.post("/user/coments/travels", getComentsAndTravelsInactive);
 
-router.get("/user/coments/travels/:id", getComentsAndTravelsInactive);
+router.post("/user/get/messages", getMessages);
 
 router.post(
 	"/user/send/data",
