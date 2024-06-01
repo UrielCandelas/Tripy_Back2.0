@@ -305,38 +305,67 @@ export const verifyToken = async (req: Request, res: Response) => {
 };
 
 export const verifyTokenMovil = async (req: Request, res: Response) => {
-	const { token } = req.body;
-	if (!token) {
-		return res.status(401).json(["No autorizado"]);
-	}
-	const key = SECRET_KEY != undefined ? SECRET_KEY : "secret";
+	try {
+		const { token } = req.body;
+		console.log(token);
+		if (!token) {
+			return res.status(401).json({ message: "No autorizado" });
+		}
+		const tokenGoogle = await verifyGoogleToken(token);
 
-	jwt.verify(token, key, async (err: any, user: any) => {
-		if (err) {
-			return res.status(401).json(["No autorizado"]);
+		if (tokenGoogle != "Error") {
+			const userStoled = await User.findFirst({
+				where: { email: tokenGoogle.email as string },
+			});
+			const image = await img_User.findUnique({
+				where: {
+					id: userStoled?.idProfile_img as string,
+				},
+			});
+			return res.status(200).json({
+				id: userStoled?.id,
+				name: userStoled?.name,
+				lastName: userStoled?.lastName,
+				secondLastName: userStoled?.secondLastName,
+				userName: userStoled?.userName,
+				email: userStoled?.email,
+				profileImg: image?.image,
+				isAdmin: userStoled?.isAdmin,
+			});
 		}
-		const userFound = await User.findUnique({ where: { id: user.id } });
-		if (!userFound) {
-			return res.status(404).json(["No autorizado"]);
-		}
-		const profileImg = await img_User.findUnique({
-			where: {
-				id: userFound.idProfile_img as string,
-			},
+
+		const key = SECRET_KEY != undefined ? SECRET_KEY : "secret";
+		jwt.verify(token, key, async (err: any, user: any) => {
+			if (err) {
+				return res.status(401).json({ message: "No autorizado" });
+			}
+			const userFound = await User.findFirst({
+				where: { id: user.id, isActive: true, isVerified: true },
+			});
+			if (!userFound) {
+				return res.status(401).json({ message: "No autorizado" });
+			}
+			const profileImg = await img_User.findUnique({
+				where: {
+					id: userFound.idProfile_img as string,
+				},
+			});
+			return res.json({
+				id: userFound.id,
+				name: userFound.name,
+				lastName: userFound.lastName,
+				secondLastName: userFound.secondLastName,
+				userName: userFound.userName,
+				email: userFound.email,
+				profileImg: profileImg?.image,
+				isAdmin: userFound.isAdmin,
+			});
 		});
-		return res.json({
-			id: userFound.id,
-			name: userFound.name,
-			lastName: userFound.lastName,
-			secondLastName: userFound.secondLastName,
-			userName: userFound.userName,
-			email: userFound.email,
-			profileImg: profileImg?.image,
-			isAdmin: userFound.isAdmin,
-			token: token,
-		});
-	});
-	return;
+		return;
+	} catch (error) {
+		console.log(error);
+		return res.status(500).json(["Error al verificar el token"]);
+	}
 };
 
 export const editUserAcount = async (req: Request, res: Response) => {

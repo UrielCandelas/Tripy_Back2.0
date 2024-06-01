@@ -23,6 +23,10 @@ const img_Locations = prisma.img_Locations;
 const Expenses = prisma.det_Expenses;
 const img_Documents = prisma.img_Documents;
 const UserRequests = prisma.usersRequest;
+const Programadores = prisma.programadores;
+const Ticket = prisma.ticket;
+const Update = prisma.update;
+const TicketsAsignados = prisma.tickets_Asignados;
 
 export const getUsersByRequest = async (req: Request, res: Response) => {
 	const { id } = req.params;
@@ -653,6 +657,154 @@ export const blobSender = async (req: Request, res: Response) => {
 		return res.status(200).json(newRequest);
 	} catch (error: any) {
 		console.log(error);
+		return res.status(500).json([error.message]);
+	}
+};
+
+export const addNewProgrammer = async (req: Request, res: Response) => {
+	const { id } = req.params;
+	try {
+		const programmerFound = await Programadores.findFirst({
+			where: {
+				id_user: id,
+			},
+		});
+		if (programmerFound) {
+			return res
+				.status(400)
+				.json(["Ya hay un programador registrado con este id"]);
+		}
+		await Programadores.create({
+			data: {
+				id_user: id,
+			},
+		});
+		return res.status(200).json(["Programador agregado"]);
+	} catch (error: any) {
+		return res.status(500).json([error.message]);
+	}
+};
+
+export const getAllTickets = async (_req: Request, res: Response) => {
+	try {
+		const tickets = await Ticket.findMany({
+			where: {
+				estatus: {
+					not: "CLOSED",
+				},
+			},
+		});
+		return res.status(200).json(tickets);
+	} catch (error: any) {
+		return res.status(500).json([error.message]);
+	}
+};
+
+export const changeStatusTicket = async (req: Request, res: Response) => {
+	const { id, status } = req.body;
+	try {
+		await Ticket.update({
+			where: {
+				id,
+			},
+			data: {
+				estatus: status,
+			},
+		});
+		return res.status(200).json(["Ticket actualizado"]);
+	} catch (error: any) {
+		return res.status(500).json([error.message]);
+	}
+};
+
+export const addNewTicket = async (req: Request, res: Response) => {
+	const { tipo_ticket, nombre_usuario_reporte, descripcion } = req.body;
+	try {
+		await Ticket.create({
+			data: {
+				tipo_ticket: tipo_ticket,
+				nombre_usuario_reporte,
+				descripcion,
+				estatus: "NEW",
+			},
+		});
+		return res.status(200).json(["Ticket creado"]);
+	} catch (error: any) {
+		return res.status(500).json([error.message]);
+	}
+};
+
+export const addNewUpdate = async (req: Request, res: Response) => {
+	const { name, number, description, tickets } = req.body;
+	try {
+		const updates = await Update.findMany();
+		tickets.forEach((ticket: string) => {
+			const hasTicketInUpdate = updates.some((update) => {
+				const updateTickets = update.ticketIds as (string | number)[];
+				return updateTickets.includes(ticket);
+			});
+			if (hasTicketInUpdate) {
+				return res
+					.status(400)
+					.json(["Ya se ha creado una actualizacion con este ticket"]);
+			}
+			return;
+		});
+		await Update.create({
+			data: {
+				name,
+				number,
+				description,
+				ticketIds: tickets,
+			},
+		});
+		return res.status(200).json(["Actualizacion creada"]);
+	} catch (error: any) {
+		return res.status(500).json([error.message]);
+	}
+};
+
+export const getUpdates = async (_req: Request, res: Response) => {
+	try {
+		const updates = await Update.findMany();
+		const updatesWithTickets = await Promise.all(
+			updates.map(async (update) => {
+				const ticketIds = update.ticketIds as string[];
+				const tickets = await Ticket.findMany({
+					where: {
+						id: {
+							in: ticketIds,
+						},
+					},
+				});
+				return { ...update, tickets };
+			})
+		);
+		return res.status(200).json(updatesWithTickets);
+	} catch (error: any) {
+		return res.status(500).json([error.message]);
+	}
+};
+
+export const addTicketToProgrammer = async (req: Request, res: Response) => {
+	const { id_programmer, id_ticket } = req.body;
+	try {
+		const ticketsAsignados = await TicketsAsignados.findFirst({
+			where: {
+				id_ticket,
+			},
+		});
+		if (ticketsAsignados) {
+			return res.status(400).json(["Ya se ha asignado este ticket"]);
+		}
+		await TicketsAsignados.create({
+			data: {
+				id_programador: id_programmer,
+				id_ticket,
+			},
+		});
+		return res.status(200).json(["Ticket asignado"]);
+	} catch (error: any) {
 		return res.status(500).json([error.message]);
 	}
 };

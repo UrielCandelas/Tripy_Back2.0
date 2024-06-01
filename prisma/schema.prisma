@@ -40,6 +40,7 @@ model Users {
   Travel_RequestU1  Travel_Request[]    @relation(name: "TravelRequestRelation2")
   Location_Comments Location_Comments[]
   UsersRequest      UsersRequest[]
+  Programadores     Programadores[]
 }
 
 model OTP {
@@ -223,4 +224,66 @@ model UsersRequest {
   image2         img_Documents @relation(name: "imageDocuments2", fields: [idIDImageFront], references: [id])
   image3         img_Documents @relation(name: "imageDocuments3", fields: [idIDImageBack], references: [id])
   user           Users         @relation(fields: [idUser], references: [id])
+}
+
+model Ticket {
+  id                     String              @id @default(uuid())
+  id_programador         String?             @db.Char(50)
+  tipo_ticket            TicketType
+  estatus                TicketStatus
+  nombre_usuario_reporte String              @db.MediumText
+  descripcion            String              @db.Text
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  //relations
+  programador            Programadores?      @relation(fields: [id_programador], references: [id])
+  Tickets_Asignados      Tickets_Asignados[]
+}
+
+enum TicketStatus {
+  NEW
+  ASSIGNED
+  IN_PROGRESS
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+enum TicketType {
+  INCIDENT
+  SERVICE_REQUEST
+  QUERY
+  TECHNICAL_PROBLEM
+  ENHANCEMENT
+  COMPLAINT
+}
+
+model Programadores {
+  id                String              @id @default(uuid())
+  id_user           String              @db.Char(50)
+  // relations
+  user              Users               @relation(fields: [id_user], references: [id])
+  Ticket            Ticket[]
+  Tickets_Asignados Tickets_Asignados[]
+}
+
+model Update {
+  id          String   @id @default(uuid())
+  number      String   @db.Char(10)
+  name        String   @db.Char(50)
+  description String   @db.MediumText
+  ticketIds   Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Tickets_Asignados {
+  id             String        @id @default(uuid())
+  id_programador String        @db.Char(50)
+  id_ticket      String        @db.Char(50)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  //relations
+  programador    Programadores @relation(fields: [id_programador], references: [id])
+  ticket         Ticket        @relation(fields: [id_ticket], references: [id])
 }

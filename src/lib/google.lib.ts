@@ -16,7 +16,10 @@ export async function verifyGoogleToken(idToken: any) {
 
 		//console.log(tokenInfo);
 
-		if (tokenInfo.aud === process.env.CLIENT_ID) {
+		if (
+			tokenInfo.aud === process.env.CLIENT_ID ||
+			tokenInfo.aud === process.env.ANDROID_CLIENT_ID
+		) {
 			return tokenInfo;
 		} else {
 			return "Error";
