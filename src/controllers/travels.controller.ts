@@ -631,10 +631,10 @@ export const registerComentTr = async (req: Request, res: Response) => {
 			where: {
 				id_location: idLocation,
 				id_user: idUser,
-			}
-		})
+			},
+		});
 
-		if (isComment.length === 3) {
+		if (isComment.length >= 3) {
 			return res.status(400).json(["Ya has comentado este lugar muchas veces"]);
 		}
 		const newComent = await Coments.create({
