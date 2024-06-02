@@ -26,6 +26,7 @@ const origins = [
 	"exp://10.107.99.45:8081",
 	"exp://192.168.1.248:8081",
 	"exp://192.168.0.12:8081",
+	"https://tripyweb-production.up.railway.app",
 ];
 
 app.use(express.json());
