@@ -435,11 +435,11 @@ export const editUserAcount = async (req: Request, res: Response) => {
 };
 
 export const getAuthorizedURL = async (_req: Request, res: Response) => {
-	res.header("Access-Control-Allow-Origin", "http://localhost:5173");
+	res.header("Access-Control-Allow-Origin", process.env.ALLOWED_ORIGIN);
 
 	res.header("Referer-Policy", "no-referrer-when-downgrade");
 
-	const redirectUrl = "http://127.0.0.1:3000/api/oauth";
+	const redirectUrl = process.env.GOOGLE_REDIRECT_URL;
 
 	const oAuth2Client = new OAuth2Client(
 		process.env.CLIENT_ID,
@@ -459,7 +459,7 @@ export const getAuthorizedURL = async (_req: Request, res: Response) => {
 export const googleAuth = async (req: Request, res: Response) => {
 	const code = req.query.code;
 	try {
-		const redirectUrl = "http://127.0.0.1:3000/api/oauth";
+		const redirectUrl = process.env.GOOGLE_REDIRECT_URL;
 		const oAuth2Client = new OAuth2Client(
 			process.env.CLIENT_ID,
 			process.env.CLIENT_SECRET,
@@ -504,8 +504,9 @@ export const googleAuth = async (req: Request, res: Response) => {
 			console.log("El usuario ya existe");
 		}
 		const urlEncodedToken = encodeURIComponent(user.id_token as string);
+
 		res.redirect(
-			`http://localhost:5173/redirectRoute/?token=${urlEncodedToken}`
+			`${process.env.ALLOWED_ORIGIN}/redirectRoute/?token=${urlEncodedToken}`
 		);
 	} catch (error: any) {
 		console.log(error.message);
