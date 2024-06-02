@@ -90,6 +90,7 @@ export const registerNewTravel = async (req: Request, res: Response) => {
 		});
 		return res.status(200).json([`Se han registrado los datos con exito`]);
 	} catch (error: any) {
+		console.log(error);
 		return res.status(500).json([`Ha ocurrido un error: ${error.message}`]);
 	}
 };
@@ -115,7 +116,7 @@ export const addSecondUser = async (req: Request, res: Response) => {
 				.json(["Ya se acepto la solicitud para este viaje"]);
 		}
 
-		const travelUpdated = await Travel.update({
+		await Travel.update({
 			where: {
 				id: id_travel,
 			},
@@ -123,7 +124,7 @@ export const addSecondUser = async (req: Request, res: Response) => {
 				id_user2,
 			},
 		});
-		const requestUpdated = await RequestTravel.update({
+		await RequestTravel.update({
 			where: {
 				id: id_request,
 				isActive: true,
@@ -149,12 +150,7 @@ export const addSecondUser = async (req: Request, res: Response) => {
 			});
 		}
 
-		const data = {
-			travel: travelUpdated,
-			request: requestUpdated,
-		};
-
-		return res.status(200).json(data);
+		return res.status(200).json(["Se ha aceptado la solicitud con exito"]);
 	} catch (error: any) {
 		console.log(error.message);
 		return res.status(500).json([`Ha ocurrido un error: ${error.message}`]);
@@ -234,11 +230,52 @@ export const addTravelRequest = async (req: Request, res: Response) => {
 				AND: { isActive: true, id_user1: id_user1 },
 			},
 		});
+		const otherRequest = await RequestTravel.findFirst({
+			where: {
+				isActive: true,
+				OR: [
+					{
+						id_user2: id_user2,
+					},
+					{
+						id_user1: id_user2,
+					},
+				],
+			},
+		});
+
+		const travelFoundForUser = await Travel.findFirst({
+			where: {
+				OR: [
+					{
+						id_user1: id_user2,
+						isActive: true,
+					},
+					{
+						id_user2: id_user2,
+						isActive: true,
+					},
+				],
+			},
+		});
+
+		console.log(travelFoundForUser);
+
+		if (travelFoundForUser) {
+			return res.status(401).json(["Ya tienes un viaje pendiente"]);
+		}
 		if (requestFound) {
-			return res.status(401).json(["Ya tienes una solicitud pendiente"]);
+			return res
+				.status(401)
+				.json(["Ya tienes una solicitud pendiente para este viaje"]);
+		}
+		if (otherRequest) {
+			return res
+				.status(401)
+				.json(["Ya tienes una solicitud pendiente para otro viaje"]);
 		}
 
-		const requestSaved = await RequestTravel.create({
+		await RequestTravel.create({
 			data: {
 				id_user1,
 				id_user2,
@@ -246,7 +283,7 @@ export const addTravelRequest = async (req: Request, res: Response) => {
 			},
 		});
 
-		const requestTravel = await getTravel(requestSaved.id_travel);
+		/*const requestTravel = await getTravel(requestSaved.id_travel);
 		const requestLocation = await getLocation(travelFound.id_location);
 
 		const requestUser = await getOneUser(requestSaved.id_user2);
@@ -256,9 +293,9 @@ export const addTravelRequest = async (req: Request, res: Response) => {
 			travel: requestTravel,
 			locations: requestLocation,
 			users: requestUser,
-		};
+		};*/
 
-		return res.status(200).json(objData);
+		return res.status(200).json(["Solicitud enviada"]);
 	} catch (error: any) {
 		return res.status(500).json([`Ha ocurrido un error: ${error.message}`]);
 	}
@@ -271,7 +308,7 @@ export const declineRequest = async (req: Request, res: Response) => {
 		if (!requestFound) {
 			return res.status(404).json(["No se encontro la solicitud"]);
 		}
-		const requestUpdated = await RequestTravel.update({
+		await RequestTravel.update({
 			where: {
 				id: id_request,
 			},
@@ -279,7 +316,7 @@ export const declineRequest = async (req: Request, res: Response) => {
 				isActive: false,
 			},
 		});
-		return res.status(200).json(requestUpdated);
+		return res.status(200).json(["La solicitud ha sido rechazada"]);
 	} catch (error: any) {
 		return res.status(500).json([`Ha ocurrido un error: ${error.message}`]);
 	}
@@ -551,7 +588,7 @@ export const addExpenseToTravel = async (req: Request, res: Response) => {
 		if (!travelFound) {
 			return res.status(404).json(["No se encontro el viaje"]);
 		}
-		const newExpense = await Expenses.create({
+		await Expenses.create({
 			data: {
 				id_user1,
 				id_user2,
@@ -560,7 +597,7 @@ export const addExpenseToTravel = async (req: Request, res: Response) => {
 				quantity,
 			},
 		});
-		return res.status(200).json(newExpense);
+		return res.status(200).json(["Gasto añadido al viaje"]);
 	} catch (error: any) {
 		return res.status(500).json([error.message]);
 	}

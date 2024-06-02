@@ -215,7 +215,7 @@ export const getTravelsAndImage2 = async (req: Request, res: Response) => {
 		});
 
 		const travelsFound = await Travel.findMany({
-			where: { id_location: id, id_user2: null },
+			where: { id_location: id, id_user2: null, isActive: true },
 		});
 
 		const img = await img_Locations.findUnique({
