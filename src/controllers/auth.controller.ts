@@ -244,6 +244,7 @@ export const profile = async (req: Request, res: Response) => {
 export const verifyToken = async (req: Request, res: Response) => {
 	try {
 		const { token } = req.cookies;
+		console.log(token);
 		if (!token) {
 			console.log("no hay token");
 			return res.status(401).json({ message: "No autorizado" });
