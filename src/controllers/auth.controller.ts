@@ -245,6 +245,7 @@ export const verifyToken = async (req: Request, res: Response) => {
 	try {
 		const { token } = req.cookies;
 		if (!token) {
+			console.log("no hay token");
 			return res.status(401).json({ message: "No autorizado" });
 		}
 		const tokenGoogle = await verifyGoogleToken(token);
@@ -273,12 +274,14 @@ export const verifyToken = async (req: Request, res: Response) => {
 		const key = SECRET_KEY != undefined ? SECRET_KEY : "secret";
 		jwt.verify(token, key, async (err: any, user: any) => {
 			if (err) {
+				console.log("error al validar");
 				return res.status(401).json({ message: "No autorizado" });
 			}
 			const userFound = await User.findFirst({
 				where: { id: user.id, isActive: true, isVerified: true },
 			});
 			if (!userFound) {
+				console.log("sin usuario");
 				return res.status(401).json({ message: "No autorizado" });
 			}
 			const profileImg = await img_User.findUnique({
