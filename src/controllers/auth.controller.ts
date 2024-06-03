@@ -198,6 +198,9 @@ export const login = async (req: Request, res: Response) => {
 		const token = await createAccessToken({ id: userFound.id }, "1w");
 		res.cookie("token", token, {
 			sameSite: "none",
+			secure: true,
+			maxAge: 1000 * 60 * 60 * 24,
+			httpOnly: true,
 		});
 		return res.json({
 			id: userFound.id,
