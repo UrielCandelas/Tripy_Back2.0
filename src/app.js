@@ -16,7 +16,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
 	cors: {
-		origin: "https://tripyweb-production.up.railway.app/chat",
+		origin: "*",
 		credentials: true,
 	},
 });
