@@ -25,10 +25,6 @@ export const locationSchema = z.object({
 		.refine(noSpecialChars, {
 			message: "La descripcion no puede contener caracteres especiales",
 		}),
-	rate: z
-		.number({ required_error: "La calif es requerido" })
-		.min(1, { message: "Debe haber por lo menos un caracter" })
-		.optional(),
 	schedule: z
 		.string({ required_error: "El horario es Requerido" })
 		.min(1, { message: "Debe haber por lo menos un caracter" })
