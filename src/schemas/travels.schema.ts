@@ -45,3 +45,14 @@ export const travelSchema = z.object({
 			"La cantidad de acompañantes deben ser un valor numerico",
 	}),
 });
+
+export const expenseSchema = z.object({
+	expense: z
+		.string({ required_error: "El gasto es requerido" })
+		.min(5, {
+			message: "El gasto es requerido",
+		})
+		.max(20, {
+			message: "El gasto no debe ser mayor a 20 caracteres",
+		}),
+});
