@@ -3,6 +3,7 @@ import {
 	Travels,
 	det_Expenses,
 	Travel_Request,
+	Users,
 } from "@prisma/client";
 import { Request, Response } from "express";
 
@@ -13,6 +14,8 @@ import {
 	getRequestTravel,
 	getExtras,
 } from "../lib/travels.lib";
+import mailgun from "../lib/mailgun.lib";
+import Mailgun from "mailgun-js";
 
 const prisma = new PrismaClient();
 
@@ -99,13 +102,13 @@ export const addSecondUser = async (req: Request, res: Response) => {
 	try {
 		const travelFound = await getTravel(id_travel);
 		const userFound = await getOneUser(id_user2);
-		const requestFound = await RequestTravel.findFirst({
+		const requestFound = (await RequestTravel.findFirst({
 			where: {
 				id_travel,
 				isActive: true,
 				id: id_request,
 			},
-		});
+		})) as Travel_Request;
 
 		if (!travelFound || !userFound) {
 			return res.status(400).json(["No se encontro el viaje o el usuario"]);
@@ -149,6 +152,39 @@ export const addSecondUser = async (req: Request, res: Response) => {
 				},
 			});
 		}
+		const locationFound = await getLocation(travelFound?.id_location as string);
+		const ownerFound = await getOneUser(requestFound.id_user1);
+		const from = process.env.SENDER_EMAIL;
+		await new Promise((resolve, reject) => {
+			mailgun.messages().send(
+				{
+					from,
+					to: userFound.email,
+					subject: "Tripy - Aprobación de Solicitud de Viaje",
+					text: `${ownerFound?.name} ha aceptado tu solicitud de unirte a su viaje hacia ${locationFound?.location_name}`,
+					html: `
+      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+
+        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+
+        <h2 style="color: #333; margin-bottom: 20px;">Se ha aceptado tu solicitud de unirte a un viaje</h2>
+
+        <div style="color: black; margin-top: 15px;">
+          <p>${ownerFound?.name} ha aceptado tu solicitud de unirte a su viaje hacia ${locationFound?.location_name}</p>
+					<p>Disfruta de tu viaje, acabando el viaje puedes dejarle una reseña a ese usuario</p>
+        </div>
+
+      </body>
+      `,
+				},
+				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(body);
+				}
+			);
+		});
 
 		return res.status(200).json(["Se ha aceptado la solicitud con exito"]);
 	} catch (error: any) {
@@ -193,6 +229,47 @@ export const deleteTravel = async (req: Request, res: Response) => {
 				isActive: false,
 			},
 		});
+		if (travelFound?.id_user2 !== null) {
+			const travel = travelFound as Travels;
+			const userFound = (await getOneUser(travel.id_user2 as string)) as Users;
+			const locationFound = await getLocation(
+				travelFound?.id_location as string
+			);
+			const ownerFound = await getOneUser(travel.id_user1);
+			const from = process.env.SENDER_EMAIL;
+			await new Promise((resolve, reject) => {
+				mailgun.messages().send(
+					{
+						from,
+						to: userFound.email,
+						subject: "Tripy - Finalizacion de Viaje",
+						text: `${ownerFound?.name} ha finalizado el viaje hacia ${locationFound?.location_name}`,
+						html: `
+				<body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+	
+					<h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+	
+					<h2 style="color: #333; margin-bottom: 20px;">Se ha finalizado el viaje</h2>
+	
+					<div style="color: black; margin-top: 15px;">
+						<p>${ownerFound?.name} ha finalizado el viaje hacia ${locationFound?.location_name}</p>
+						<p>Puedes dejar una reseña en el perfil de ${ownerFound?.name} hablando de tu experiencia</p>
+						<p>Gracias por usar Tripy</p>
+					</div>
+	
+				</body>
+				`,
+					},
+					(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+						if (err) {
+							reject(err);
+						}
+						resolve(body);
+					}
+				);
+			});
+		}
+
 		return res.status(200).json(`Se ha eliminado el viaje`);
 	} catch (error: any) {
 		return res.status(500).json([`Ha ocurrido un error: ${error.message}`]);
@@ -259,8 +336,6 @@ export const addTravelRequest = async (req: Request, res: Response) => {
 			},
 		});
 
-		console.log(travelFoundForUser);
-
 		if (travelFoundForUser) {
 			return res.status(401).json(["Ya tienes un viaje pendiente"]);
 		}
@@ -282,18 +357,38 @@ export const addTravelRequest = async (req: Request, res: Response) => {
 				id_travel,
 			},
 		});
+		const from = process.env.SENDER_EMAIL;
+		const userFound = (await getOneUser(id_user1)) as Users;
+		await new Promise((resolve, reject) => {
+			mailgun.messages().send(
+				{
+					from,
+					to: userFound.email,
+					subject: "Tripy - Solicitud de Viaje",
+					text: `${userFound.name} ${userFound.lastName} ha solicitado unirse a tu viaje`,
+					html: `
+      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
-		/*const requestTravel = await getTravel(requestSaved.id_travel);
-		const requestLocation = await getLocation(travelFound.id_location);
+        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
 
-		const requestUser = await getOneUser(requestSaved.id_user2);
+        <h2 style="color: #333; margin-bottom: 20px;">Un usuario solicito unirse a tu viaje</h2>
 
-		const objData = {
-			request: requestSaved,
-			travel: requestTravel,
-			locations: requestLocation,
-			users: requestUser,
-		};*/
+        <div style="color: black; margin-top: 15px;">
+          <p>${userFound.name} ${userFound.lastName} ha solicitado unirse a tu viaje</p>
+					<p>Puedes consultar su perfil para revisar sus reseñas de anteriores viajes desde Tripy</p>
+        </div>
+
+      </body>
+      `,
+				},
+				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(body);
+				}
+			);
+		});
 
 		return res.status(200).json(["Solicitud enviada"]);
 	} catch (error: any) {
@@ -315,6 +410,42 @@ export const declineRequest = async (req: Request, res: Response) => {
 			data: {
 				isActive: false,
 			},
+		});
+
+		const userFound = (await getOneUser(requestFound.id_user2)) as Users;
+		const travelFound = await getTravel(requestFound.id_travel);
+		const locationFound = await getLocation(travelFound?.id_location as string);
+		const ownerFound = await getOneUser(requestFound.id_user1);
+		const from = process.env.SENDER_EMAIL;
+		await new Promise((resolve, reject) => {
+			mailgun.messages().send(
+				{
+					from,
+					to: userFound.email,
+					subject: "Tripy - Rechazo de solicitud",
+					text: `${ownerFound?.name} ha rechazado tu solicitud de unirte a un viaje hacia ${locationFound?.location_name}`,
+					html: `
+      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+
+        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+
+        <h2 style="color: #333; margin-bottom: 20px;">Se ha rechazado tu solicitud de unirte a un viaje</h2>
+
+        <div style="color: black; margin-top: 15px;">
+          <p>${ownerFound?.name} ha rechazado tu solicitud de unirte a un viaje hacia ${locationFound?.location_name}</p>
+					<p>Puedes volver a hacer tu solicitud a ese viaje</p>
+        </div>
+
+      </body>
+      `,
+				},
+				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(body);
+				}
+			);
 		});
 		return res.status(200).json(["La solicitud ha sido rechazada"]);
 	} catch (error: any) {
