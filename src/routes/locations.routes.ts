@@ -31,6 +31,7 @@ router.post(
 		{ name: "image1", maxCount: 1 },
 		{ name: "image2", maxCount: 1 },
 	]),
+	validateSchema(locationSchema),
 	registerLocation
 );
 router.put(
