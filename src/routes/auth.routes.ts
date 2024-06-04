@@ -38,7 +38,7 @@ router.put("/edit/acount", upload.single("image"), editUserAcount);
 
 router.post("/auth/verify/mobile", verifyTokenMovil);
 
-router.get("/auth/verify", verifyToken);
+router.post("/auth/verify", verifyToken);
 
 router.get("/oauth", googleAuth);
 
