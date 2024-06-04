@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 import { validateSchema } from "../middlewares/validateZodSchema";
-import { createTravelSchema } from "../schemas/travels.schema";
+import { createTravelSchema, expenseSchema } from "../schemas/travels.schema";
 import {
 	registerNewTravel,
 	addSecondUser,
@@ -46,7 +46,11 @@ router.get("/travels/requested/active/:id", getTravelsA);
 
 router.get("/request/get/:id", getRequest);
 
-router.post("/travels/expenses/add", addExpenseToTravel);
+router.post(
+	"/travels/expenses/add",
+	validateSchema(expenseSchema),
+	addExpenseToTravel
+);
 
 //no creo que este sea necesario puedo meterlo en otra func
 router.get("/travels/expenses/get/:id", getTravelExpenses);
