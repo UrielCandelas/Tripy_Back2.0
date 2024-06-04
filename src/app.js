@@ -54,19 +54,15 @@ app.use("/api", userRoutes);
 global.onlineUsers = new Map();
 
 io.on("connection", async (socket) => {
-	console.log("New Connection: ", socket.id);
 	global.chatSocket = socket;
 	socket.on("add-user", (userId) => {
 		global.onlineUsers.set(userId, socket.id);
-		console.log("online users: ", global.onlineUsers);
 	});
 
 	socket.on("send-msg", (data) => {
 		const sendUserSocket = global.onlineUsers.get(data.to);
 		if (sendUserSocket) {
 			socket.to(sendUserSocket).emit("msg-recieve", data.message);
-			console.log("Sended Message: ", data);
-			console.log("Message sended to:", sendUserSocket);
 		}
 	});
 
