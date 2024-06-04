@@ -140,7 +140,12 @@ export const register = async (req: Request, res: Response) => {
 			);
 		});
 
-		res.cookie("verify", token);
+		res.cookie("verify", token, {
+			sameSite: "none",
+			secure: true,
+			maxAge: 1000 * 60 * 60 * 24,
+			httpOnly: true,
+		});
 		return res.status(200).json({
 			id: newUser.id,
 			name: newUser.name,
@@ -248,7 +253,7 @@ export const profile = async (req: Request, res: Response) => {
 //Se crea una funcion para verificar el token que se ingrese
 export const verifyToken = async (req: Request, res: Response) => {
 	try {
-		const { token } = req.cookies;
+		const { token } = req.body;
 		console.log(token);
 		if (!token) {
 			console.log("no hay token");
