@@ -27,6 +27,7 @@ const Programadores = prisma.programadores;
 const Ticket = prisma.ticket;
 const Update = prisma.update;
 const TicketsAsignados = prisma.tickets_Asignados;
+const img_Tickets = prisma.img_Tickets;
 
 export const getUsersByRequest = async (req: Request, res: Response) => {
 	const { id } = req.params;
@@ -718,18 +719,38 @@ export const changeStatusTicket = async (req: Request, res: Response) => {
 };
 
 export const addNewTicket = async (req: Request, res: Response) => {
-	const { tipo_ticket, nombre_usuario_reporte, descripcion } = req.body;
+	const { tipo_ticket, email_usuario_reporte, descripcion } = req.body;
+	const file = req.file as Express.Multer.File;
 	try {
-		await Ticket.create({
+		const response_img: UploadApiResponse | undefined = await new Promise(
+			(resolve, reject) => {
+				cloudinary.uploader
+					.upload_stream({}, (error, result) => {
+						if (error) {
+							reject(error);
+						}
+						resolve(result);
+					})
+					.end(file.buffer);
+			}
+		);
+		const ticket = await Ticket.create({
 			data: {
-				tipo_ticket: tipo_ticket,
-				nombre_usuario_reporte,
+				tipo_ticket,
+				email_usuario_reporte,
 				descripcion,
-				estatus: "NEW",
 			},
 		});
+		await img_Tickets.create({
+			data: {
+				id_Ticket: ticket.id,
+				image: response_img?.secure_url as string,
+			},
+		});
+
 		return res.status(200).json(["Ticket creado"]);
 	} catch (error: any) {
+		console.log(error);
 		return res.status(500).json([error.message]);
 	}
 };

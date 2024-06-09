@@ -13,6 +13,13 @@ import {
 	getAccountRequest,
 	identitySender,
 	blobSender,
+	addNewProgrammer,
+	addNewTicket,
+	addNewUpdate,
+	addTicketToProgrammer,
+	changeStatusTicket,
+	getAllTickets,
+	getUpdates,
 } from "../controllers/users.controller";
 
 import { userCommentarySchema } from "../schemas/userCommentary.schema";
@@ -64,5 +71,19 @@ router.put("/admin/accept/requests/:id", acceptRequest);
 router.put("/admin/decline/requests/:id", declineRequest);
 
 router.post("/user/send/blob", blobSender);
+
+router.post("/ticket/new", upload.single("image"), addNewTicket);
+
+router.post("/programmer/new", addNewProgrammer);
+
+router.post("/update/new", addNewUpdate);
+
+router.post("/ticket/programmer", addTicketToProgrammer);
+
+router.put("/ticket/status", changeStatusTicket);
+
+router.get("/ticket/all", getAllTickets);
+
+router.get("/update/all", getUpdates);
 
 export default router;
