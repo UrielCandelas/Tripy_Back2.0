@@ -663,7 +663,7 @@ export const blobSender = async (req: Request, res: Response) => {
 };
 
 export const addNewProgrammer = async (req: Request, res: Response) => {
-	const { id } = req.params;
+	const { id } = req.body;
 	try {
 		const programmerFound = await Programadores.findFirst({
 			where: {
@@ -687,6 +687,7 @@ export const addNewProgrammer = async (req: Request, res: Response) => {
 };
 
 export const getAllTickets = async (_req: Request, res: Response) => {
+	const cards = [];
 	try {
 		const tickets = await Ticket.findMany({
 			where: {
@@ -695,7 +696,39 @@ export const getAllTickets = async (_req: Request, res: Response) => {
 				},
 			},
 		});
-		return res.status(200).json(tickets);
+		for (let index = 0; index < tickets.length; index++) {
+			const image = await img_Tickets.findFirst({
+				where: {
+					id_Ticket: tickets[index].id,
+				},
+			});
+			let userEmail = "";
+			if (tickets[index].estatus != "NEW") {
+				const ticketAsignado = await TicketsAsignados.findFirst({
+					where: {
+						id_ticket: tickets[index].id,
+					},
+				});
+				const programador = await Programadores.findUnique({
+					where: {
+						id: ticketAsignado?.id_programador as string,
+					},
+				});
+				const user = await User.findUnique({
+					where: {
+						id: programador?.id_user as string,
+					},
+				});
+				userEmail = user?.email as string;
+			}
+			const card = {
+				...tickets[index],
+				image: image?.image as string,
+				emailProgramador: userEmail,
+			};
+			cards.push(card);
+		}
+		return res.status(200).json(cards);
 	} catch (error: any) {
 		return res.status(500).json([error.message]);
 	}
@@ -710,6 +743,23 @@ export const changeStatusTicket = async (req: Request, res: Response) => {
 			},
 			data: {
 				estatus: status,
+			},
+		});
+		return res.status(200).json(["Ticket actualizado"]);
+	} catch (error: any) {
+		return res.status(500).json([error.message]);
+	}
+};
+
+export const changeTicketPriority = async (req: Request, res: Response) => {
+	const { id, prioridad } = req.body;
+	try {
+		await Ticket.update({
+			where: {
+				id,
+			},
+			data: {
+				prioridad: prioridad,
 			},
 		});
 		return res.status(200).json(["Ticket actualizado"]);
@@ -818,6 +868,14 @@ export const addTicketToProgrammer = async (req: Request, res: Response) => {
 		if (ticketsAsignados) {
 			return res.status(400).json(["Ya se ha asignado este ticket"]);
 		}
+		await Ticket.update({
+			where: {
+				id: id_ticket,
+			},
+			data: {
+				estatus: "ASSIGNED",
+			},
+		});
 		await TicketsAsignados.create({
 			data: {
 				id_programador: id_programmer,
@@ -825,6 +883,96 @@ export const addTicketToProgrammer = async (req: Request, res: Response) => {
 			},
 		});
 		return res.status(200).json(["Ticket asignado"]);
+	} catch (error: any) {
+		console.log(error);
+		return res.status(500).json([error.message]);
+	}
+};
+
+export const getProgrammers = async (_req: Request, res: Response) => {
+	const users = [];
+	try {
+		const programmers = await Programadores.findMany();
+		for (let index = 0; index < programmers.length; index++) {
+			const user = await getOneUser(programmers[index].id_user);
+			const data = {
+				id_user: user?.id,
+				id_programador: programmers[index].id,
+				name: user?.name,
+				email: user?.email,
+			};
+			users.push(data);
+		}
+		return res.status(200).json(users);
+	} catch (error: any) {
+		return res.status(500).json([error.message]);
+	}
+};
+
+export const getMyTickets = async (req: Request, res: Response) => {
+	const { id } = req.body;
+	const tickets = [];
+	try {
+		const programador = await Programadores.findFirst({
+			where: {
+				id_user: id,
+			},
+		});
+
+		const ticketsAsignados = await TicketsAsignados.findMany({
+			where: {
+				id_programador: programador?.id as string,
+			},
+		});
+		for (let index = 0; index < ticketsAsignados.length; index++) {
+			const ticket = await Ticket.findUnique({
+				where: {
+					id: ticketsAsignados[index].id_ticket,
+					AND: {
+						estatus: { not: "CLOSED" },
+					},
+				},
+			});
+			if (ticket) {
+				const image = await img_Tickets.findFirst({
+					where: {
+						id_Ticket: ticket?.id as string,
+					},
+				});
+				const data = {
+					...ticket,
+					image: image?.image as string,
+				};
+				tickets.push(data);
+			}
+		}
+		return res.status(200).json(tickets);
+	} catch (error: any) {
+		return res.status(500).json([error.message]);
+	}
+};
+
+export const getClosedTickets = async (_req: Request, res: Response) => {
+	const cards = [];
+	try {
+		const tickets = await Ticket.findMany({
+			where: {
+				estatus: "CLOSED",
+			},
+		});
+		for (let index = 0; index < tickets.length; index++) {
+			const image = await img_Tickets.findFirst({
+				where: {
+					id_Ticket: tickets[index].id,
+				},
+			});
+			const card = {
+				...tickets[index],
+				image: image?.image as string,
+			};
+			cards.push(card);
+		}
+		return res.status(200).json(cards);
 	} catch (error: any) {
 		return res.status(500).json([error.message]);
 	}

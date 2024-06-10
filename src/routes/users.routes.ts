@@ -20,6 +20,10 @@ import {
 	changeStatusTicket,
 	getAllTickets,
 	getUpdates,
+	getProgrammers,
+	changeTicketPriority,
+	getMyTickets,
+	getClosedTickets,
 } from "../controllers/users.controller";
 
 import { userCommentarySchema } from "../schemas/userCommentary.schema";
@@ -82,8 +86,16 @@ router.post("/ticket/programmer", addTicketToProgrammer);
 
 router.put("/ticket/status", changeStatusTicket);
 
+router.put("/ticket/priority", changeTicketPriority);
+
 router.get("/ticket/all", getAllTickets);
 
 router.get("/update/all", getUpdates);
+
+router.get("/programmers/all", getProgrammers);
+
+router.get("/programmer/tickets/all", getMyTickets);
+
+router.get("/tickets/closed/all", getClosedTickets);
 
 export default router;
