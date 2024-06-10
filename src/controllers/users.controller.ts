@@ -955,23 +955,35 @@ export const getMyTickets = async (req: Request, res: Response) => {
 export const getClosedTickets = async (_req: Request, res: Response) => {
 	const cards = [];
 	try {
-		const tickets = await Ticket.findMany({
+		const closedTickets = await prisma.ticket.findMany({
 			where: {
 				estatus: "CLOSED",
 			},
 		});
-		for (let index = 0; index < tickets.length; index++) {
-			const image = await img_Tickets.findFirst({
+
+		const updates = await prisma.update.findMany();
+
+		const updatedTicketIds = updates.flatMap(
+			(update) => update.ticketIds as string[]
+		);
+
+		const filteredTickets = closedTickets.filter(
+			(ticket) => !updatedTicketIds.includes(ticket.id)
+		);
+
+		for (let index = 0; index < filteredTickets.length; index++) {
+			const image = await prisma.img_Tickets.findFirst({
 				where: {
-					id_Ticket: tickets[index].id,
+					id_Ticket: filteredTickets[index].id,
 				},
 			});
 			const card = {
-				...tickets[index],
+				...filteredTickets[index],
 				image: image?.image as string,
 			};
 			cards.push(card);
 		}
+
 		return res.status(200).json(cards);
 	} catch (error: any) {
 		return res.status(500).json([error.message]);
