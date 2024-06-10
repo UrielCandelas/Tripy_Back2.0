@@ -19,6 +19,8 @@ const prisma = new PrismaClient();
 const User = prisma.users;
 const OTP = prisma.oTP;
 const img_User = prisma.img_Users;
+const Programadores = prisma.programadores;
+
 const SECRET_KEY = process.env.SECRET_KEY;
 
 export const register = async (req: Request, res: Response) => {
@@ -200,6 +202,12 @@ export const login = async (req: Request, res: Response) => {
 			},
 		});
 
+		const isProgrammer = await Programadores.findFirst({
+			where: {
+				id_user: userFound.id,
+			},
+		});
+
 		const token = await createAccessToken({ id: userFound.id }, "1w");
 		res.cookie("token", token, {
 			sameSite: "none",
@@ -216,6 +224,7 @@ export const login = async (req: Request, res: Response) => {
 			email: userFound.email,
 			profileImg: profileImg?.image,
 			isAdmin: userFound.isAdmin,
+			isProgrammer: isProgrammer ? true : false,
 			token: token,
 		});
 	} catch (error: any) {
@@ -254,7 +263,6 @@ export const profile = async (req: Request, res: Response) => {
 export const verifyToken = async (req: Request, res: Response) => {
 	try {
 		const { token } = req.body;
-		console.log(token);
 		if (!token) {
 			console.log("no hay token");
 			return res.status(401).json({ message: "No autorizado" });
@@ -264,6 +272,11 @@ export const verifyToken = async (req: Request, res: Response) => {
 		if (tokenGoogle != "Error") {
 			const userStoled = await User.findFirst({
 				where: { email: tokenGoogle.email as string },
+			});
+			const isProgrammer = await Programadores.findFirst({
+				where: {
+					id_user: userStoled?.id,
+				},
 			});
 			const image = await img_User.findUnique({
 				where: {
@@ -279,6 +292,7 @@ export const verifyToken = async (req: Request, res: Response) => {
 				email: userStoled?.email,
 				profileImg: image?.image,
 				isAdmin: userStoled?.isAdmin,
+				isProgrammer: isProgrammer ? true : false,
 			});
 		}
 
@@ -295,6 +309,11 @@ export const verifyToken = async (req: Request, res: Response) => {
 				console.log("sin usuario");
 				return res.status(401).json({ message: "No autorizado" });
 			}
+			const isProgrammer = await Programadores.findFirst({
+				where: {
+					id_user: userFound.id,
+				},
+			});
 			const profileImg = await img_User.findUnique({
 				where: {
 					id: userFound.idProfile_img as string,
@@ -309,6 +328,7 @@ export const verifyToken = async (req: Request, res: Response) => {
 				email: userFound.email,
 				profileImg: profileImg?.image,
 				isAdmin: userFound.isAdmin,
+				isProgrammer: isProgrammer ? true : false,
 			});
 		});
 		return;
