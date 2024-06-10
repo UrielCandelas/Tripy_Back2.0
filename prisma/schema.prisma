@@ -227,17 +227,17 @@ model UsersRequest {
 }
 
 model Ticket {
-  id                     String              @id @default(uuid())
-  id_programador         String?             @db.Char(50)
-  tipo_ticket            TicketType
-  estatus                TicketStatus
-  nombre_usuario_reporte String              @db.MediumText
-  descripcion            String              @db.Text
-  createdAt              DateTime            @default(now())
-  updatedAt              DateTime            @updatedAt
+  id                    String              @id @default(uuid())
+  tipo_ticket           TicketType
+  estatus               TicketStatus        @default(NEW)
+  prioridad             TicketPriority      @default(NONE)
+  email_usuario_reporte String              @db.MediumText
+  descripcion           String              @db.Text
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
   //relations
-  programador            Programadores?      @relation(fields: [id_programador], references: [id])
-  Tickets_Asignados      Tickets_Asignados[]
+  Tickets_Asignados     Tickets_Asignados[]
+  img_Tickets           img_Tickets[]
 }
 
 enum TicketStatus {
@@ -247,6 +247,13 @@ enum TicketStatus {
   PENDING
   RESOLVED
   CLOSED
+}
+
+enum TicketPriority {
+  NONE
+  LOW
+  MIDDLE
+  HIGH
 }
 
 enum TicketType {
@@ -263,7 +270,6 @@ model Programadores {
   id_user           String              @db.Char(50)
   // relations
   user              Users               @relation(fields: [id_user], references: [id])
-  Ticket            Ticket[]
   Tickets_Asignados Tickets_Asignados[]
 }
 
@@ -286,4 +292,14 @@ model Tickets_Asignados {
   //relations
   programador    Programadores @relation(fields: [id_programador], references: [id])
   ticket         Ticket        @relation(fields: [id_ticket], references: [id])
+}
+
+model img_Tickets {
+  id        String   @id @default(uuid())
+  id_Ticket String   @db.Char(50)
+  image     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  //relations
+  ticket    Ticket   @relation(fields: [id_Ticket], references: [id])
 }
