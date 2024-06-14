@@ -853,3 +853,35 @@ export const consultComent = async (req: Request, res: Response) => {
 		return res.status(500).json([error.message]);
 	}
 };
+
+export const buscador = async (req: Request, res: Response) => {
+	const { params } = req.body;
+
+	if (!params) {
+		return res.status(400).json({ error: "Params are required" });
+	}
+
+	try {
+		const locations = await Location.findMany({
+			where: {
+				location_name: {
+					contains: params,
+					// mode: "insensitive" // Este se elimina porque no es compatible
+				},
+			},
+		});
+
+		const users = await Users.findMany({
+			where: {
+				userName: {
+					contains: params,
+					// mode: "insensitive" // Este se elimina porque no es compatible
+				},
+			},
+		});
+
+		return res.status(200).json({ locations, users });
+	} catch (error: any) {
+		return res.status(500).json([error.message]);
+	}
+};
