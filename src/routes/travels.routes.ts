@@ -17,6 +17,7 @@ import {
 	getTravelExpenses,
 	getTravelsAndUsers,
 	registerComentTr,
+	buscador,
 } from "../controllers/travels.controller";
 
 const router = Router();
@@ -58,5 +59,7 @@ router.get("/travels/expenses/get/:id", getTravelExpenses);
 router.get("/travels/expenses/users/:id", getTravelsAndUsers);
 
 router.post("/travels/locacionComentario", registerComentTr);
+
+router.post("/buscador", buscador);
 
 export default router;
