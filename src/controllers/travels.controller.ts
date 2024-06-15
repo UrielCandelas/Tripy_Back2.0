@@ -27,6 +27,8 @@ const RequestTravel = prisma.travel_Request;
 const Images = prisma.img_Users;
 const Users = prisma.users;
 const Coments = prisma.location_Comments;
+const img_Users = prisma.img_Users;
+const img_Locations = prisma.img_Locations;
 
 export const registerNewTravel = async (req: Request, res: Response) => {
 	const {
@@ -880,7 +882,33 @@ export const buscador = async (req: Request, res: Response) => {
 			},
 		});
 
-		return res.status(200).json({ locations, users });
+		const usersArr: any = [];
+		for (let index = 0; index < users.length; index++) {
+			const image = await img_Users.findUnique({
+				where: {
+					id: users[index].idProfile_img as string,
+				},
+			});
+			usersArr.push({
+				...users[index],
+				image: image?.image as string,
+			});
+		}
+
+		const locationsArr: any = [];
+		for (let index = 0; index < locations.length; index++) {
+			const image = await img_Locations.findUnique({
+				where: {
+					id: locations[index].id_locationImage1 as string,
+				},
+			});
+
+			locationsArr.push({
+				...locations[index],
+				image: image?.image as string,
+			});
+		}
+		return res.status(200).json({ locations: locationsArr, users: usersArr });
 	} catch (error: any) {
 		return res.status(500).json([error.message]);
 	}
