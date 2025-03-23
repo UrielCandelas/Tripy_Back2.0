@@ -37,7 +37,7 @@ Tripy es una aplicación diseñada para conectar usuarios interesados en realiza
    - Los usuarios pueden seguir en contacto después del viaje.
   
 ## Producto Finalizado
-https://tripyweb-production.up.railway.app/aboutUs
+https://tripyweb-production.up.railway.app
 
 ## 📌 Instalación y configuración
 
