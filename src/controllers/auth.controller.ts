@@ -5,9 +5,10 @@ import { Request, Response } from "express";
 import { PrismaClient, Users } from "@prisma/client";
 import { getUserData, verifyGoogleToken } from "../lib/google.lib";
 import { OAuth2Client } from "google-auth-library";
-import mailgun from "../lib/mailgun.lib";
+// import mailgun from "../lib/mailgun.lib";
 import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
-import Mailgun from "mailgun-js";
+//import Mailgun from "mailgun-js";
+import resend from "../lib/resend.lib";
 
 cloudinary.config({
 	cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -90,7 +91,7 @@ export const register = async (req: Request, res: Response) => {
 				token: token as string,
 			},
 		});
-		const from = process.env.SENDER_EMAIL;
+		const from = process.env.SENDER_EMAIL || "";
 
 		if (newUser.isAdmin) {
 			await User.update({
@@ -106,40 +107,30 @@ export const register = async (req: Request, res: Response) => {
 				message: "El administrador se ha registrado exitosamente",
 			});
 		}
-		await new Promise((resolve, reject) => {
-			mailgun.messages().send(
-				{
-					from,
-					to: newUser.email,
-					subject: "Tripy - Verificación de correo",
-					text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-					html: `<body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
-	
-				<h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
-	
-				<h2 style="color: #333; margin-bottom: 20px;">Este es tu codigo de verificación:</h2>
-	
-				<div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block;">
-					<p style="color: #555; font-size: 18px; margin-bottom: 40px; font-weight: bold; color: #007bff;">${otpUpdated.otp}</p>
-				</div>
-	
-				<div style="color: black; margin-top: 15px;">
-					<p>Ingresa este codigo de verificacion en la pagina de tripy para finalizar tu registro</p>
-				</div>
-	
-				<footer style="color: #888; margin-top: 20px;">
-					<p>Por favor, no compartas este código con nadie. Si no realizaste esta acción, por favor, contacta con nosotros.</p>
-				</footer>
-	
-			</body>`,
-				},
-				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
-					if (err) {
-						reject(err);
-					}
-					resolve(body);
-				}
-			);
+		await resend.emails.send({
+			from,
+			to: newUser.email,
+			subject: "Tripy - Verificación de correo",
+			text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+			html: `<body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+
+			<h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+
+			<h2 style="color: #333; margin-bottom: 20px;">Este es tu codigo de verificación:</h2>
+
+			<div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block;">
+				<p style="color: #555; font-size: 18px; margin-bottom: 40px; font-weight: bold; color: #007bff;">${otpUpdated.otp}</p>
+			</div>
+
+			<div style="color: black; margin-top: 15px;">
+				<p>Ingresa este codigo de verificacion en la pagina de tripy para finalizar tu registro</p>
+			</div>
+
+			<footer style="color: #888; margin-top: 20px;">
+				<p>Por favor, no compartas este código con nadie. Si no realizaste esta acción, por favor, contacta con nosotros.</p>
+			</footer>
+
+		</body>`,
 		});
 
 		res.cookie("verify", token, {
@@ -727,43 +718,33 @@ export const changeEmail = async (req: Request, res: Response) => {
 				token: token as string,
 			},
 		});
-		const from = process.env.SENDER_EMAIL;
-		await new Promise((resolve, reject) => {
-			mailgun.messages().send(
-				{
-					from,
-					to: userFound.email,
-					subject: "Tripy - Verificación de correo",
-					text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-					html: `
-      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+		const from = process.env.SENDER_EMAIL || "";
+		await resend.emails.send({
+			from,
+			to: userFound.email,
+			subject: "Tripy - Verificación de correo",
+			text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+			html: `
+		<body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
-        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+			<h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
 
-        <h2 style="color: #333; margin-bottom: 20px;">Este es tu codigo de verificación:</h2>
+			<h2 style="color: #333; margin-bottom: 20px;">Este es tu codigo de verificación:</h2>
 
-        <div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block;">
-          <p style="color: #555; font-size: 18px; margin-bottom: 40px; font-weight: bold; color: #007bff;">${otpUpdated.otp}</p>
-        </div>
+			<div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block;">
+				<p style="color: #555; font-size: 18px; margin-bottom: 40px; font-weight: bold; color: #007bff;">${otpUpdated.otp}</p>
+			</div>
 
-        <div style="color: black; margin-top: 15px;">
-          <p>Ingresa este codigo de verificacion en la pagina de tripy para finalizar tu registro</p>
-        </div>
+			<div style="color: black; margin-top: 15px;">
+				<p>Ingresa este codigo de verificacion en la pagina de tripy para finalizar tu registro</p>
+			</div>
 
-        <footer style="color: #888; margin-top: 20px;">
-          <p>Por favor, no compartas este código con nadie. Si no realizaste esta acción, por favor, contacta con nosotros.</p>
-        </footer>
+			<footer style="color: #888; margin-top: 20px;">
+				<p>Por favor, no compartas este código con nadie. Si no realizaste esta acción, por favor, contacta con nosotros.</p>
+			</footer>
 
-      </body>
-      `,
-				},
-				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
-					if (err) {
-						reject(err);
-					}
-					resolve(body);
-				}
-			);
+		</body>
+		`,
 		});
 		res.cookie("verify", token);
 		return res.status(200).json({
@@ -800,43 +781,33 @@ export const resendOTP = async (req: Request, res: Response) => {
 				token: token as string,
 			},
 		});
-		const from = process.env.SENDER_EMAIL;
-		await new Promise((resolve, reject) => {
-			mailgun.messages().send(
-				{
-					from,
-					to: userFound.email,
-					subject: "Tripy - Verificación de correo",
-					text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
-					html: `
-      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+		const from = process.env.SENDER_EMAIL || "";
+		await resend.emails.send({
+			from,
+			to: userFound.email,
+			subject: "Tripy - Verificación de correo",
+			text: `Este es el otp de tu registro: ${otpUpdated.otp}`,
+			html: `
+		<body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
-        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+			<h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
 
-        <h2 style="color: #333; margin-bottom: 20px;">Este es tu codigo de verificación:</h2>
+			<h2 style="color: #333; margin-bottom: 20px;">Este es tu codigo de verificación:</h2>
 
-        <div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block;">
-          <p style="color: #555; font-size: 18px; margin-bottom: 40px; font-weight: bold; color: #007bff;">${otpUpdated.otp}</p>
-        </div>
+			<div style="background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: inline-block;">
+				<p style="color: #555; font-size: 18px; margin-bottom: 40px; font-weight: bold; color: #007bff;">${otpUpdated.otp}</p>
+			</div>
 
-        <div style="color: black; margin-top: 15px;">
-          <p>Ingresa este codigo de verificacion en la pagina de tripy para finalizar tu registro</p>
-        </div>
+			<div style="color: black; margin-top: 15px;">
+				<p>Ingresa este codigo de verificacion en la pagina de tripy para finalizar tu registro</p>
+			</div>
 
-        <footer style="color: #888; margin-top: 20px;">
-          <p>Por favor, no compartas este código con nadie. Si no realizaste esta acción, por favor, contacta con nosotros.</p>
-        </footer>
+			<footer style="color: #888; margin-top: 20px;">
+				<p>Por favor, no compartas este código con nadie. Si no realizaste esta acción, por favor, contacta con nosotros.</p>
+			</footer>
 
-      </body>
-      `,
-				},
-				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
-					if (err) {
-						reject(err);
-					}
-					resolve(body);
-				}
-			);
+		</body>
+		`,
 		});
 
 		res.cookie("verify", token);
