@@ -40,7 +40,7 @@ Tripy es una aplicación diseñada para conectar usuarios interesados en realiza
 
 ### 1️⃣ Clonar el repositorio
 ```sh
-git clone https://github.com/usuario/tripy-backend.git
+git clone https://github.com/UrielCandelas/Tripy_Back2.0.git
 cd tripy-backend
 ```
 ### 2️⃣ Instalar dependencias
