@@ -34,7 +34,10 @@ Tripy es una aplicación diseñada para conectar usuarios interesados en realiza
 
 6. **Finalización del viaje**:  
    - Al terminar el viaje, este se agrega al **historial** de ambos usuarios.  
-   - Los usuarios pueden seguir en contacto después del viaje.  
+   - Los usuarios pueden seguir en contacto después del viaje.
+  
+## Producto Finalizado
+https://tripyweb-production.up.railway.app/aboutUs
 
 ## 📌 Instalación y configuración
 
