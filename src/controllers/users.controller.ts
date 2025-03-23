@@ -2,8 +2,9 @@ import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import { getOneUser, getLocation, getExtras } from "../lib/travels.lib";
 import { Contact } from "../../types";
-import mailgun from "../lib/mailgun.lib";
-import Mailgun from "mailgun-js";
+//import mailgun from "../lib/mailgun.lib";
+//import Mailgun from "mailgun-js";
+import resend from "../lib/resend.lib";
 import { UploadApiResponse, v2 as cloudinary } from "cloudinary";
 
 cloudinary.config({
@@ -524,32 +525,22 @@ export const acceptRequest = async (req: Request, res: Response) => {
 				isVerified: true,
 			},
 		});
-		const from = process.env.SENDER_EMAIL;
-		await new Promise((resolve, reject) => {
-			mailgun.messages().send(
-				{
-					from,
-					to: userVerified.email,
-					subject: "Tripy - Identidad verificada",
-					text: `Tu identidad ha sido verificada, gracias por usar Tripy`,
-					html: `
-      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+		const from = process.env.SENDER_EMAIL || "";
+		await resend.emails.send({
+			from,
+			to: userVerified.email,
+			subject: "Tripy - Identidad verificada",
+			text: `Tu identidad ha sido verificada, gracias por usar Tripy`,
+			html: `
+		<body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
-        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+			<h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
 
-        <h2 style="color: #333; margin-bottom: 20px;">Tu identidad ha sido verificada</h2>
+			<h2 style="color: #333; margin-bottom: 20px;">Tu identidad ha sido verificada</h2>
 
-        <h3 style="color: #333; margin-bottom: 20px;">Tu cuenta ha sido verificada y aceptada, sientete libre de usar Tripy</h3>
-      </body>
-      `,
-				},
-				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
-					if (err) {
-						reject(err);
-					}
-					resolve(body);
-				}
-			);
+			<h3 style="color: #333; margin-bottom: 20px;">Tu cuenta ha sido verificada y aceptada, sientete libre de usar Tripy</h3>
+		</body>
+		`,
 		});
 
 		return res.sendStatus(200);
@@ -587,32 +578,22 @@ export const declineRequest = async (req: Request, res: Response) => {
 				isActive: true,
 			},
 		});
-		const from = process.env.SENDER_EMAIL;
-		await new Promise((resolve, reject) => {
-			mailgun.messages().send(
-				{
-					from,
-					to: userData?.email as string,
-					subject: "Tripy - Solicitud Rechazada",
-					text: `Lamentablemente tu solicitud ha sido rechazada debido a: ${reason}, los datos que enviaste se eliminaran de nuestros registros`,
-					html: `
-      <body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
+		const from = process.env.SENDER_EMAIL || "";
+		await resend.emails.send({
+			from,
+			to: userData?.email as string,
+			subject: "Tripy - Solicitud Rechazada",
+			text: `Lamentablemente tu solicitud ha sido rechazada debido a: ${reason}, los datos que enviaste se eliminaran de nuestros registros`,
+			html: `
+		<body style="font-family: 'Arial', sans-serif; background-color: #f4f4f4; text-align: center; padding: 20px;">
 
-        <h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
+			<h1 style="color: #007bff; margin-bottom: 10px;">Tripy</h1>
 
-        <h2 style="color: #333; margin-bottom: 20px;">Tu identidad no se ha podido verificar</h2>
+			<h2 style="color: #333; margin-bottom: 20px;">Tu identidad no se ha podido verificar</h2>
 
-        <h3 style="color: #333; margin-bottom: 20px;">Lamentablemente tu solicitud ha sido rechazada debido a: ${reason}, los datos que enviaste se eliminaran de nuestros registros, en caso de querer volver a usar Tripy, vuelve a realizar un registro pero con tus datos ya correjidos</h3>
-      </body>
-      `,
-				},
-				(err: Mailgun.Error, body: Mailgun.messages.SendResponse) => {
-					if (err) {
-						reject(err);
-					}
-					resolve(body);
-				}
-			);
+			<h3 style="color: #333; margin-bottom: 20px;">Lamentablemente tu solicitud ha sido rechazada debido a: ${reason}, los datos que enviaste se eliminaran de nuestros registros, en caso de querer volver a usar Tripy, vuelve a realizar un registro pero con tus datos ya correjidos</h3>
+		</body>
+		`,
 		});
 
 		return res.sendStatus(200);
